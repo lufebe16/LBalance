@@ -1,0 +1,14 @@
+appdirs
+buildozer
+colorama
+Cython
+Jinja2
+Kivy
+packaging
+pep517
+permutation
+pip
+setuptools
+six
+toml
+wheel
