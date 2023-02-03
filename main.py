@@ -2,15 +2,9 @@
 # -*- mode: python; coding: utf-8; -*-
 
 import os
-#print ('KIVY_HOME: '+os.environ['KIVY_HOME'])
-import time
-import math
-
 import logging
 
 from LApp import LApp, LWorkWindow, LCircleView
-
-from kivy.uix.label import Label
 from kivy.clock import Clock
 
 import sensors
@@ -24,33 +18,11 @@ class sensor_update(object):
 		self.view = view
 		self.eventId = None
 
-	def orientation(self,phi,theta):
-		# evaluation
-		if (theta > 45.0):
-			return "LANDING"
-		if (theta < -45.0):
-			return "FRONT"
-		if (phi < 135.0 and phi > 45.0):
-			return "TOP"
-		if (phi < 45.0 and phi > -45.0):
-			return "RIGHT"
-		if (phi < -45.0 and phi > -135.0):
-			return "BOTTOM"
-		if (phi > 135.0 or phi < -135.0):
-			return "LEFT"
-		# fallback
-		return "LANDING"
-
 	def run(self, dt):
 		#logging.info("Appli: sensor run update")
 		if self.reader is not None:
 			result = self.reader.getCurrentValues()
-			phi = result.rawPhi
-			theta = result.rawTheta
-			ori = self.orientation(phi,theta)
-			# handle calibration
-			#self.view.refresh(phi,theta)
-			self.view.refresh(result)
+			self.view.refresh(result.rawPhi, result.rawTheta)
 
 	def start_reading(self):
 		logging.info("Appli: sensor start update")
