@@ -7,7 +7,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
 import org.lufebe16.util.Smoother;
-import org.lufebe16.sensor.SensorResult;
+//import org.lufebe16.sensor.SensorResult;
 
 import android.util.Log;
 /*
@@ -33,11 +33,6 @@ public class SensorReader implements SensorEventListener
      */
     private SensorManager sensorManager;
     /**
-      * Smoothing
-     */
-    private long halfLife = 300; // [ms]
-    private Smoother angleSmooth;
-    /**
      * indicates whether or not Accelerometer Sensor is supported
      */
     private Boolean supported = false;
@@ -45,7 +40,12 @@ public class SensorReader implements SensorEventListener
      * indicates whether or not Accelerometer Sensor is running
      */
     private boolean running = false;
-    //private boolean locked;
+    /**
+     * results
+     */
+    public double sensorX;
+    public double sensorY;
+    public double sensorZ;
 
     public SensorReader() {
     }
@@ -101,13 +101,8 @@ public class SensorReader implements SensorEventListener
      * callback for accelerometer events
      */
     //public void startListening(OrientationListener orientationListener)
-    public void startListening(Context context)
+    public boolean startListening(Context context)
     {
-        // smoother
-        //halfLife = 150; // [ms]
-        halfLife = 20; // [ms]
-        angleSmooth = new Smoother(halfLife,-180.0,180.0);
-
         // register listener and start listening
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         running = true;
@@ -116,12 +111,11 @@ public class SensorReader implements SensorEventListener
         {
             running = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL) && running;
         }
+        return running;
     }
 
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
-
-    private SensorResult valsSM = new SensorResult();
 
     private long lastTime = 0;
     private long deltaTime = 0;
@@ -160,50 +154,10 @@ public class SensorReader implements SensorEventListener
         }
 
         /*
-         * signal aufbereiten.
-         * Wir ermitteln diverse Winkel zum Schwerkraft Vektor.
+         * set public results
          */
-
-        // Drehung um die z-Achse (-180 to 180, darum atan2):
-        // (Oft mit 'Psy' oder 'Phi' bezeichenter Winkel)
-        double xyAngle = Math.toDegrees(Math.atan2(evalues[1],evalues[0]));
-
-        // Winkel zwischen z-Achse und xy-Ebene (-90..90)
-        // (Oft mit 'theta' bezeichneter Winkel)
-        double zxyAngle = Math.toDegrees(Math.atan(
-                evalues[2]/Math.sqrt(evalues[0]*evalues[0]+evalues[1]*evalues[1])
-                ));
-
-        // Das wär eigentlich alles was wir zur Richtung der Schwerkraft bezüglich
-        // unseres Apparates benötigen. Zusätzlich, der Einfachheit halber ermittlen
-        // wir direkt noch die folgenden Werte direkt:
-
-        // Drehung um die y-Achse ('roll', -90..90)
-        double xzAngle = Math.toDegrees(Math.atan(evalues[0]/Math.abs(evalues[2])));
-
-        // Drehung um die x-Achse ('pitch', -90..90)
-        double yzAngle = -Math.toDegrees(Math.atan(evalues[1]/Math.abs(evalues[2])));
-
-        // Wert für balanceX
-        double yxAngle = 90.0-xyAngle;
-        if (yxAngle>=180) yxAngle -= 360.0;
-
-        /*
-         * Smoothing.
-         */
-        angleSmooth.updateTime(currentTime);
-        valsSM.smPitch = angleSmooth.updateValue(valsSM.smPitch,yzAngle);
-        valsSM.smRoll = angleSmooth.updateValue(valsSM.smRoll,xzAngle);
-        valsSM.smBalanceX = angleSmooth.updateValue(valsSM.smBalanceX,yxAngle);
-        valsSM.smBalanceY = angleSmooth.updateValue(valsSM.smBalanceY,xyAngle);
-        valsSM.rawPhi = xyAngle;
-        valsSM.rawTheta = zxyAngle;
-        //valsSM.rawPhi = angleSmooth.updateValue(valsSM.rawPhi,xyAngle);
-        //valsSM.rawTheta = angleSmooth.updateValue(valsSM.rawTheta,zxyAngle);
-    }
-
-    public SensorResult getCurrentValues()
-    {
-        return new SensorResult(valsSM); 
+        sensorX = evalues[0];
+        sensorY = evalues[1];
+        sensorZ = evalues[2];
     }
 }

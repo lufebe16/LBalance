@@ -14,12 +14,11 @@ import time
 from kivy.clock import mainthread
 
 SensorReader = None
-SensorResult = None
+#SensorResult = None
 
 if jnius is not None:
     Intent = jnius.autoclass('android.content.Intent')
     Uri = jnius.autoclass('android.net.Uri')
-
     PythonActivity = jnius.autoclass('org.kivy.android.PythonActivity')
     currentActivity = jnius.cast('android.app.Activity', PythonActivity.mActivity)
 
@@ -32,5 +31,4 @@ if jnius is not None:
     # VCodes = jnius.autoclass("android.os.Build$VERSION_CODES")
 
     SensorReader = jnius.autoclass('org.lufebe16.sensor.SensorReader')
-    SensorResult = jnius.autoclass('org.lufebe16.sensor.SensorResult')
-
+    #SensorResult = jnius.autoclass('org.lufebe16.sensor.SensorResult')

@@ -21,8 +21,11 @@ class sensor_update(object):
 	def run(self, dt):
 		#logging.info("Appli: sensor run update")
 		if self.reader is not None:
-			result = self.reader.getCurrentValues()
-			self.view.refresh(result.rawPhi, result.rawTheta)
+			#result = self.reader.getCurrentValues()
+			#self.view.refresh(result.smX, result.smY, result.smZ)
+			r = self.reader
+			self.view.refresh(r.sensorX, r.sensorY, r.sensorZ)
+
 
 	def start_reading(self):
 		logging.info("Appli: sensor start update")

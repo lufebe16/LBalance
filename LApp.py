@@ -116,37 +116,57 @@ class LCalaStore(object):
 
 	def accept(self):
 		self.accept_one = True
+		print ("LCalaStore: accept()")
 
 	def addCalibration(self,rawValue):
 		if not self.accept_one: return
 
 		ori = rawValue.orientation()
 		if  ori not in self.store:
-			self.store[ori] = LCala()
-		if ori in ["LANDING","FLYING"]:
-			self.store[ori].addValue(rawValue.theta,rawValue.refval)
+			self.store[ori] = { 'X':LCala(),'Y':LCala(),'Z':LCala() }
+		if ori in ["LANDING"]:
+			self.store[ori]['X'].addValue(rawValue.valX,0)
+			self.store[ori]['Y'].addValue(rawValue.valY,0)
+			self.store[ori]['Z'].addValue(rawValue.valZ,rawValue.g)
+		elif ori in ["FLYING"]:
+			self.store[ori]['X'].addValue(rawValue.valX,0)
+			self.store[ori]['Y'].addValue(rawValue.valY,0)
+			self.store[ori]['Z'].addValue(rawValue.valZ,-rawValue.g)
+		elif ori in ["TOP","BOTTOM"]:
+			self.store[ori]['X'].addValue(rawValue.valX,0)
 		else:
-			self.store[ori].addValue(rawValue.phi,rawValue.refval)
-		print ("LCalaStore: one value accepted")
+			self.store[ori]['Y'].addValue(rawValue.valY,0)
+		print ("LCalaStore: new value added")
 		self.accept_one = False
 
 	def calibrate(self,rawValue):
 		ori = rawValue.orientation()
 		if ori not in self.store: return rawValue
 
-		val = self.store[ori].getValue()
-		if ori in ["LANDING","FLYING"]:
-			return LValue(rawValue.phi,rawValue.theta-val)
-		else:
-			return LValue(rawValue.phi-val,rawValue.theta)
+		valX = self.store[ori]['X'].getValue()
+		valY = self.store[ori]['Y'].getValue()
+		valZ = self.store[ori]['Z'].getValue()
+		return LValue(rawValue.valX-valX,rawValue.valY-valY,rawValue.valZ-valZ)
+
+	def handleCalibration(self,rawValue):
+		self.addCalibration(rawValue)
+		return self.calibrate(rawValue)
 
 #=============================================================================
 
 class LValue(object):
 
-	def __init__(self,phi,theta):
-		self.phi = phi
-		self.theta = theta
+	def __init__(self,valX,valY,valZ):
+
+		self.valX = valX
+		self.valY = valY
+		self.valZ = valZ
+		valXY = math.sqrt(valX*valX+valY*valY)
+		self.phi = math.degrees(math.atan2(valY,valX));
+		self.theta = 90.0
+		if valXY != 0.0:
+			self.theta = math.degrees(math.atan(valZ/valXY))
+		self.g = math.sqrt(valX*valX+valY*valY+valZ*valZ)
 
 		def norm45(angle):
 			angle = normAngle(angle)
@@ -154,32 +174,25 @@ class LValue(object):
 			if angle > 45: angle = 45
 			return angle
 
-		self.refval = 0.0
 		self.bala = 0.0
 		self.ori = "LANDING"
 		if (self.theta > 45.0):
 			self.ori = "LANDING"
-			self.refval = 90.0
 			self.bala = norm45(90.0-self.theta)
 		elif (self.theta < -45.0):
 			self.ori = "FLYING"
-			self.refval = -90.0
 			self.bala = norm45(-90.0-self.theta)
 		elif (self.phi < 135.0 and self.phi > 45.0):
 			self.ori = "BOTTOM"
-			self.refval = 90.0
 			self.bala = norm45(90.0-self.phi)
 		elif (self.phi < 45.0 and self.phi > -45.0):
 			self.ori = "LEFT"
-			self.refval = 0.0
 			self.bala = norm45(-self.phi)
 		elif (self.phi < -45.0 and self.phi > -135.0):
 			self.ori = "TOP"
-			self.refval = -90.0
 			self.bala = norm45(-90.0-self.phi)
 		elif (self.phi > 135.0 or self.phi < -135.0):
 			self.ori = "RIGHT"
-			self.refval = 180.0
 			self.bala = norm45(180.0-self.phi)
 
 	def pitch(self):
@@ -193,9 +206,6 @@ class LValue(object):
 
 	def orientation(self):
 		return self.ori
-
-	def refv(self):
-		return self.refval
 
 #=============================================================================
 # Definiert den App Hintergrund.
@@ -216,7 +226,7 @@ class LCircleView(Widget):
 		msiz = min(self.size[0],self.size[1])
 		rpos = (self.pos[0]+(self.size[0]-msiz)/2,self.pos[1]+(self.size[1]-msiz)/2)
 		center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
-		print ('LCircleView',msiz)
+		#print ('LCircleView',msiz)
 
 		self.canvas.before.clear()
 		with self.canvas.before:
@@ -251,12 +261,12 @@ class LWorkWindow(BoxLayout):
         self.bind(size=self.update)
         self.update_event = None
 
-        self.label_phi = LabelButton(text="")
+        self.label_phi = LabelButton(text="",font_size=48)
         self.label_theta = LabelButton(text="")
-        self.label_balance = LabelButton(text="")
+        self.label_balance = LabelButton(text="",font_size=64)
         self.lcontainer = BoxLayout()
-        self.lcontainer.add_widget(self.label_phi)
-        self.lcontainer.add_widget(self.label_theta)
+        #self.lcontainer.add_widget(self.label_phi)
+        #self.lcontainer.add_widget(self.label_theta)
 
         self.angle = 0.0
         self.value = 0.0
@@ -265,6 +275,7 @@ class LWorkWindow(BoxLayout):
         self.valRaw = None
         self.valCal = None
         self.calaStore = LCalaStore()
+        self.calaResetEvent = None
 
     def update_content(self):
         self.clear_widgets()
@@ -296,20 +307,10 @@ class LWorkWindow(BoxLayout):
         self.update_deferred()
         return
 
-    def refresh(self, phi, theta):
-        self.value = theta
-        self.angle = phi
-
-        # TBD:
-        # if calibrated:
-        # modify phi and theta:
-
-        self.valRaw = LValue(phi,theta)
-        self.calaStore.addCalibration(self.valRaw)
-
-        self.valCal = self.calaStore.calibrate(self.valRaw)
+    def refresh(self, valX, valY, valZ):
+        self.valRaw = LValue(valX,valY,valZ)
+        self.valCal = self.calaStore.handleCalibration(self.valRaw)
         self.ori = self.valCal
-
         self.draw_line()
 
     def draw_line(self):
@@ -320,9 +321,13 @@ class LWorkWindow(BoxLayout):
         center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
 
         if self.ori is not None:
+            self.value = self.ori.theta
+            self.angle = self.ori.phi
+
             txtangle = 0.0
             self.balance = self.ori.balance()
-            self.label_balance.text = 'balance: '+str(round(self.balance,1))
+            #self.label_balance.text = 'balance: '+str(round(self.balance,1))
+            self.label_balance.text = str(round(self.balance,1))
             if self.ori.orientation()=="LANDING":
                 x = self.ori.roll()
                 y = self.ori.pitch()
@@ -355,13 +360,11 @@ class LWorkWindow(BoxLayout):
         self.canvas.after.clear()
         with self.canvas.after:
             good = 0.3
-            if (((math.fabs(self.balance)+good) % 90) < 2.0*good) and self.ori is not None:
-              #Color(0.75, 1.0, 0.1, 0.6)    # gelb-grün
-              Color(0.5, 1.0, 0.1, 0.6)    # hell-grün
+            if (((math.fabs(self.balance)+good) % 90) < 2.0*good):
+              Color(0.5, 1.0, 0.0, 0.6)    # hell-grün
             else:
-              Color(1, 0.2, 0.2, 0.7)       # lachs-rot
+              Color(1.0, 0.6, 0.0, 0.6)    # gelb-orange
 
-            #Color(0.5, 1.0, 0.1, 0.6)    # gelb-grün
             Line(points=[center[0],center[1],x,y],width=2.0)
             Line(points=[center[0],center[1],
                 center[0]-(x-center[0]),
@@ -379,34 +382,33 @@ class LWorkWindow(BoxLayout):
 
     def on_touch_down(self, touch):
 
-        print('LWorkWindow: touch_down %s' % str(touch.time_start))
-        print('LWorkWindow: touch_down %s' % str(touch.time_end))
-        print('LWorkWindow: touch_down on %s' % str(touch.pos))
-        print('LWorkWindow: sensor %s,%s' % (str(self.angle),str(self.value)))
-        return False
-
-    def on_touch_up(self, touch):
-        print('LWorkWindow: touch_up %s' % str(touch.time_start))
-        print('LWorkWindow: touch_up %s' % str(touch.time_end))
-        if (touch.time_end-touch.time_start) > 2:
-            print ("long tap")
-            self.calaStore.reset();
-        else:
+        # calibrieren, nur wenn im Zentrum innerhalb er erste 10 degrees:
+        msiz = min(self.size[0],self.size[1])
+        center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
+        dx = math.fabs(touch.pos[0] - center[0])
+        dy = math.fabs(touch.pos[1] - center[1])
+        if (msiz/90*10 > math.sqrt(dx*dx+dy*dy)):
             self.calaStore.accept();
-            print ('normal tap')
 
+        # calibration zurücksetzen vorbereiten.
+        self.calaResetEvent =\
+            Clock.schedule_once(lambda dt: self.calaStore.reset(),1.5)
+
+        # desktop Variante:
         app = Cache.get('LAppCache', 'mainApp')
-        if app.sensor_reader is not None:
-            pass
-
-            # Idee: wenn ins zentrum getippt wird: kalibartionswert
-            # hinzufügen. Bei long tap wieder zurcksetzen.
-        else:
+        if app.sensor_reader is None:
             self.angle = touch.pos[1]
             self.value = touch.pos[0]
             self.draw_line()
+
         return False
 
+    def on_touch_up(self, touch):
+
+        # calibrations reset stoppen, wenn tap zu kurz:
+        if (touch.time_end-touch.time_start) < 1.0:
+           Clock.unschedule(self.calaResetEvent)
+        return False
 
 #=============================================================================
 
