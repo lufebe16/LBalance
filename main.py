@@ -8,6 +8,8 @@ from LApp import LApp, LWorkWindow, LCircleView
 from kivy.clock import Clock
 
 import sensors
+from smoother import Smoother
+import time
 
 #=============================================================================
 
@@ -17,14 +19,23 @@ class sensor_update(object):
 		self.reader = reader
 		self.view = view
 		self.eventId = None
+		self.smX = 0.0
+		self.smY = 0.0
+		self.smZ = 0.0
+		self.smooth = Smoother(0.2)
 
 	def run(self, dt):
 		#logging.info("Appli: sensor run update")
 		if self.reader is not None:
-			#result = self.reader.getCurrentValues()
-			#self.view.refresh(result.smX, result.smY, result.smZ)
 			r = self.reader
-			self.view.refresh(r.sensorX, r.sensorY, r.sensorZ)
+			self.smooth.updateTime(time.time())
+			self.smX = self.smooth.updateValue(self.smX,r.sensorX)
+			self.smY = self.smooth.updateValue(self.smY,r.sensorY)
+			self.smZ = self.smooth.updateValue(self.smZ,r.sensorZ)
+			#st = time.time()
+			self.view.refresh(self.smX, self.smY, self.smZ)
+			#et = time.time()
+			#logging.info("Appli: view refresh: %s" % str(round(et-st,3)))
 
 
 	def start_reading(self):
