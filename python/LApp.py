@@ -3,8 +3,7 @@
 # -*- mode: python; coding: utf-8; -*-
 
 import os
-#print ('KIVY_HOME: '+os.environ['KIVY_HOME'])
-
+import math
 import logging
 
 from kivy.graphics import *
@@ -26,8 +25,6 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.core.window import Window
 from kivy.properties import StringProperty, ObjectProperty
-
-import math
 
 # =============================================================================
 # helpers.
