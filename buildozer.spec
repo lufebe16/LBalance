@@ -1,7 +1,7 @@
 [app]
 
 # (str) Title of your application
-title = LevelBalance
+title = LBalance
 
 # (str) Package name
 package.name = ww

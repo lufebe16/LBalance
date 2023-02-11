@@ -53,27 +53,7 @@ def polarDeg(x,y,z):
 # =============================================================================
 # graphic helpers
 
-def rotated_text(text,x,y,angle=0,font_size=16,anchor=(0,0),color=[1,1,1,1]):
-	l = Label(text=text,font_size=font_size,pos=(-100,-100))
-	l.color = color
-	l.texture_update()
-	t = l.texture
-	xo = t.size[0] * (anchor[0]-1) / 2.0
-	yo = t.size[1] * (anchor[1]-1) / 2.0
-	PushMatrix()
-	Rotate(angle=angle,origin=(x,y))
-	Rectangle(texture=t,pos=(x+xo,y+yo),size=t.size)
-	PopMatrix()
-
-def set_color(color=[0,0,0,0]):
-	Color(color[0],color[1],color[2],color[3])
-
-def set_color_range(cfrom=[0,0,0,0],cto=[1,1,1,1],param=0.5):
-	if param<0.0: color = cfrom
-	elif param > 1.0: color = cto
-	else:
-		color = [ (cfrom[i]+param*(cto[i]-cfrom[i])) for i in range(0,4) ]
-	Color(color[0],color[1],color[2],color[3])
+from graphics import rotated_text, set_color, set_color_range, baloon, triangle
 
 # =============================================================================
 # kivy EventDispatcher passes keywords, that to not correspond to properties
@@ -312,146 +292,14 @@ class LValue(object):
 #=============================================================================
 # Definiert den App Hintergrund.
 
-class LCircleView(Widget):
-
-	val_ori = StringProperty("LANDING")
-
-	def __init__(self,**kw):
-		super(LCircleView, self).__init__(**kw)
-
-		self.bind(pos=self.update)
-		self.bind(size=self.update)
-		self.update_event = None
-		self.variante = 1
-		self.msiz = None
-		self.center = [0,0]
-		self.radius = None
-
-	def on_val_ori(self,*args):
-		self.update()
-
-	def update(self, *args):
-		Clock.unschedule(self.update_event)
-		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
-
-	def update_scheduled(self, *args):
-		self.msiz = msiz = min(self.size[0],self.size[1])
-		self.radius = msiz/2.0
-		rpos = (self.pos[0]+(self.size[0]-msiz)/2,self.pos[1]+(self.size[1]-msiz)/2)
-		self.center = center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
-		#print ('LCircleView',msiz)
-
-		self.canvas.before.clear()
-		with self.canvas.before:
-
-			if self.variante == 0:
-				Color(0.5, 0.4, 1.0, 1)   # violett
-				step = (msiz/2.0) / 45
-				for i in range(5,45,10):
-					Line(circle=(center[0],center[1],i*step),width=0.5)
-				Line(circle=(center[0],center[1],45*step),width=0.7)
-
-			if self.variante == 1:
-				Color(0.7, 0.7, 0.7, 1)   # hellgrau
-				step = (msiz/2.0) / 45
-				for i in range(5,45,5):
-					Line(circle=(center[0],center[1],i*step),width=0.5)
-				Line(circle=(center[0],center[1],45*step),width=0.7)
-
-			if self.variante == 2:
-				self.radius = 0.9*msiz/2
-				step = self.radius / 45
-				m = msiz/2
-				r = self.radius
-
-				Color(0.7, 0.7, 0.7, 1)   # hellgrau
-				for i in range(5,45,5):
-					Line(circle=(center[0],center[1],i*step),width=0.5)
-				Line(circle=(center[0],center[1],45*step),width=0.7)
-
-				for i in range(-45,46,1):
-					if i % 10 == 0:
-						Line(points=[center[0]-m,center[1]+i*step,center[0]-r,center[1]+i*step],width=0.5)
-						Line(points=[center[0]+m,center[1]+i*step,center[0]+r,center[1]+i*step],width=0.5)
-						Line(points=[center[0]+i*step,center[1]-m,center[0]+i*step,center[1]-r],width=0.5)
-						Line(points=[center[0]+i*step,center[1]+m,center[0]+i*step,center[1]+r],width=0.5)
-					elif i % 5 == 0:
-						Line(points=[center[0]-m+5,center[1]+i*step,center[0]-r,center[1]+i*step],width=0.5)
-						Line(points=[center[0]+m-5,center[1]+i*step,center[0]+r,center[1]+i*step],width=0.5)
-						Line(points=[center[0]+i*step,center[1]-m+5,center[0]+i*step,center[1]-r],width=0.5)
-						Line(points=[center[0]+i*step,center[1]+m-5,center[0]+i*step,center[1]+r],width=0.5)
-					else:
-						Line(points=[center[0]-m+15,center[1]+i*step,center[0]-r,center[1]+i*step],width=0.5)
-						Line(points=[center[0]+m-15,center[1]+i*step,center[0]+r,center[1]+i*step],width=0.5)
-						Line(points=[center[0]+i*step,center[1]-m+15,center[0]+i*step,center[1]-r],width=0.5)
-						Line(points=[center[0]+i*step,center[1]+m-15,center[0]+i*step,center[1]+r],width=0.5)
-
-				axis = 1
-				if self.val_ori in ['LEFT','TOP']: axis = -1
-				self.draw_skala(axis_dir=axis)
-				'''
-				fs = 20
-				for i in range(-45,46,1):
-					if i % 10 == 0:
-						rotated_text(str(i),center[0]-r,center[1]+i*step,font_size=fs)
-						rotated_text(str(i),center[0]+r,center[1]+i*step,font_size=fs)
-						rotated_text(str(i),center[0]+i*step,center[1]-r,font_size=fs)
-						rotated_text(str(i),center[0]+i*step,center[1]+r,font_size=fs)
-
-						#Line(points=[center[0]-m,center[1]+i*step,center[0]-r,center[1]+i*step],width=0.5)
-						#Line(points=[center[0]+m,center[1]+i*step,center[0]+r,center[1]+i*step],width=0.5)
-						#Line(points=[center[0]+i*step,center[1]-m,center[0]+i*step,center[1]-r],width=0.5)
-						#Line(points=[center[0]+i*step,center[1]+m,center[0]+i*step,center[1]+r],width=0.5)
-				'''
-
-
-			if self.variante == 5:
-				Color(0.5, 0.4, 1.0, 1)
-				Bezier(points=(center[0],center[1],
-							center[0]+msiz, center[1],
-							center[0]+msiz/15.0, center[1]+msiz/15.0,
-							center[0], center[1]+msiz,
-							center[0],center[1]),loop=False)
-				step = (msiz/2.0) / 45
-				for i in range(5,45,10):
-					Line(circle=(center[0],center[1],i*step),width=0.5)
-				Line(circle=(center[0],center[1],45*step),width=0.7)
-
-	def draw_skala(self,angle=None,axis_dir=1):
-		fs = 20
-		step = self.radius / 45
-		c = self.center
-		r = self.radius
-		for i in range(-45,46,1):
-			if i % 10 == 0:
-				if angle is not None:
-					rotated_text(str(i*axis_dir),c[0]-r,c[1]+i*step,font_size=fs,angle=angle)
-					rotated_text(str(i*axis_dir),c[0]+r,c[1]+i*step,font_size=fs,angle=angle)
-					rotated_text(str(i*axis_dir),c[0]+i*step,c[1]-r,font_size=fs,angle=angle)
-					rotated_text(str(i*axis_dir),c[0]+i*step,c[1]+r,font_size=fs,angle=angle)
-				else:
-					rotated_text(str(i*axis_dir),c[0]-r,c[1]+i*step,font_size=fs,angle=90)
-					rotated_text(str(i*axis_dir),c[0]+r,c[1]+i*step,font_size=fs,angle=-90)
-					rotated_text(str(i*axis_dir),c[0]+i*step,c[1]-r,font_size=fs,angle=180)
-					rotated_text(str(i*axis_dir),c[0]+i*step,c[1]+r,font_size=fs,angle=0)
-
-	def get_radius(self):
-		return self.radius
-
-	def on_touch_down(self, touch):
-		# double tap
-		if touch.is_double_tap:
-			self.variante += 1
-			self.variante = self.variante % 3
-			self.update()
-		return False
+from staticview import LCircleView, StaticViews
 
 #=============================================================================
+# Definiert den App Hintergrund.
 
-class LWorkWindow(BoxLayout):
+class LAngleView(BoxLayout):
 	def __init__(self,**kw):
-		super(LWorkWindow, self).__init__(**kw)
-
+		super(LAngleView, self).__init__(**kw)
 		with self.canvas.before:
 			Color(0, 0.00, 0.3, 1)   # schwarz mit blau stich
 			Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
@@ -463,96 +311,143 @@ class LWorkWindow(BoxLayout):
 		self.bind(pos=self.update)
 		self.bind(size=self.update)
 		self.update_event = None
+		self.bckgnd = None
+		self.val_ori = None
+
+	def update(self,*args):
+		Clock.unschedule(self.update_event)
+		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
+
+	def update_scheduled(self,*args):
+		self.rect.pos = self.pos
+		self.rect.size = self.size
+		print("LAngleView (pos): ",self.pos)
+		print("LAngleView (size): ",self.size)
+		print("LAngleView (center): ",self.center)
+
+	def set_background(self,bckgnd):
+		self.clear_widgets()
+		self.bckgnd = bckgnd
+		self.add_widget(bckgnd)
+
+	def refresh(self, x, y, z):
+		if self.bckgnd is None: return
+		if self.bckgnd.get_radius() is None: return
+		if self.bckgnd.get_circle() is None: return
+
+		rv = LValue(valX,valY,valZ)
+		rc = self.calaStore.handleCalibration(rv)
+
+		self.present(rc)
+
+	def present(self,value):
+		if self.val_ori != value.orientation():
+			self.val_ori = value.orientation()
+			self.bckgnd.val_ori = self.val_ori
+
+		radius = self.circle_view.get_radius()
+		circle = self.circle_view.get_circle()
+
+		balance = self.ori.balance()
+		txtangle = self.ori.txtori()
+		x,y = self.ori.xy()
+		x = x*radius/45.0 + center[0]
+		y = y*radius/45.0 + center[1]
+
+
+
+	def on_touch_down(self, touch):
+		# double tap
+		if touch.is_double_tap:
+			for c in self.children:
+				c.on_touch_down(touch)
+		return False
+
+#=============================================================================
+
+class LWorkWindow(BoxLayout):
+	def __init__(self,**kw):
+		super(LWorkWindow, self).__init__(**kw)
+
+		with self.canvas.before:
+			Color(0, 0.00, 0.1, 1)   # schwarz mit blau stich
+			#Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
+			#Color(0, 0.05, 0.1, 1)   # schwarz mit blau-grün stich
+			#Color(0, 1, 1, 0.4)
+			#Color(0.0, 0.0, 0.0, 1)   # schwarz
+			self.rect = Rectangle(pos=self.pos, size=self.size)
+
+		self.bind(pos=self.update)
+		self.bind(size=self.update)
+		self.update_event = None
 
 		self.label_hidden = Label(pos=(-200,-200))
-		#self.label_phi = LabelButton(text="",font_size=32)
-		self.label_cal = LabelButton(text="",font_size=32)
-		#self.label_theta = LabelButton(text="",font_size=32)
-		#self.label_balance = LabelButton(text="",font_size=72)
+		self.label_cal = LabelButton(text="LBalance",font_size=32)
 		self.lcontainer = BoxLayout()
-		#self.lcontainer.add_widget(self.label_phi)
-		self.lcontainer.add_widget(self.label_cal)
-		#self.lcontainer.add_widget(self.label_theta)
-		self.circle_view = LCircleView()
 
-		self.angle = 0.0
-		self.value = 0.0
+		# das könnte ein array sine mit div. varianten.
+		#self.circle_view = LCircleView()
+		#self.angle_view = LAngleView()
+		self.circle_view = None
+		self.angle_view = LAngleView()
+		self.static_views = StaticViews()
+
 		self.ori = None
 		self.calaStore = LCalaStore()
 		self.calaResetEvent = None
 		self.val_ori = "LANDING"
 
 		self.variant = 0
+		self.static_variant = 1
 
 	def update_content(self):
 		self.clear_widgets()
 		if self.size[0]>=self.size[1]:
-		  self.orientation='horizontal'
-		  self.lcontainer.orientation="vertical"
-		  smin = self.size[1]
+			self.orientation='horizontal'
+			self.lcontainer.orientation="vertical"
+			self.lcontainer.size_hint=(0.1,1)
+			self.lcontainer.clear_widgets()
+			self.lcontainer.add_widget(self.label_cal)
+			smin = self.size[1]
 		else:
-		  self.orientation='vertical'
-		  self.lcontainer.orientation="horizontal"
-		  smin = self.size[0]
+			self.orientation='vertical'
+			self.lcontainer.orientation="horizontal"
+			self.lcontainer.size_hint=(1,0.1)
+			self.lcontainer.clear_widgets()
+			self.lcontainer.add_widget(self.label_cal)
+			smin = self.size[0]
 
-		#self.circle_view = LCircleView()
-		self.circle_view = LCircleView(size_hint=(None,None),width=smin,height=smin)
+		#self.circle_view.size_hint=(None,None)
+		#self.circle_view.width=smin
+		#self.circle_view.height=smin
+
+		# TBD: anhand von 'variante' auswhlen.
+
+		self.circle_view =  self.static_views.view(self.static_variant)
+		#self.angle_view = LAngleView()
+
 		self.add_widget(self.lcontainer)
-		#self.add_widget(LCircleView(size_hint=(None,None),width=smin,height=smin))
-		self.add_widget(self.circle_view)
-		#self.add_widget(self.label_balance)
-		self.add_widget(BoxLayout())
+		self.add_widget(self.angle_view)
+		self.angle_view.set_background(self.circle_view)
+
+		#self.add_widget(self.circle_view)
+		#self.add_widget(BoxLayout())
+		#self.add_widget(self.angle_view)
 
 	def update(self, *args):
 		Clock.unschedule(self.update_event)
 		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
 
-	def update_deferred(self):
+	def update_scheduled(self, *args):
 		self.rect.pos = self.pos
 		self.rect.size = self.size
 		self.update_content()
-		self.draw_line()
-
-	def update_scheduled(self, *args):
-		self.update_deferred()
 		return
 
 	def refresh(self, valX, valY, valZ):
 		rv = LValue(valX,valY,valZ)
 		rc = self.calaStore.handleCalibration(rv)
 		self.ori = rc
-		self.draw_line()
-
-	def draw_line(self):
-		if self.ori is None: return
-		if self.circle_view is None: return
-		if self.circle_view.get_radius() is None: return
-
-		if self.val_ori != self.ori.orientation():
-			self.val_ori = self.ori.orientation()
-			self.circle_view.val_ori = self.val_ori
-
-		x = self.value
-		y = self.angle
-		#msiz = min(self.size[0],self.size[1])
-		msiz = 2.0*self.circle_view.get_radius()
-		rad = msiz/9.0
-		center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
-
-		balance = (self.value-center[0])/100
-		self.value = self.ori.theta
-		self.angle = self.ori.phi
-
-		txtangle = 0.0
-		balance = self.ori.balance()
-		x,y = self.ori.xy()
-		txtangle = self.ori.txtori()
-
-		x = x*msiz/2.0/45.0 + center[0]
-		y = y*msiz/2.0/45.0 + center[1]
-
-		#self.label_balance.text = "{0: 5.2f}\u00b0".format(balance)
-		#self.label_balance.update_angle(txtangle)
 
 		#cal = self.calaStore.isCalibrated(self.ori)
 		#if cal is not None:
@@ -564,44 +459,49 @@ class LWorkWindow(BoxLayout):
 		if cal > 0:
 			self.label_cal.text = str(cal)+' x calibrated'
 		else:
-			self.label_cal.text = ''
+			self.label_cal.text = 'LBalance'
 
-		#self.label_phi.text = "phi: {0: 5.1f}\u00b0".format(self.angle)
-		#self.label_theta.text = "theta: {0: 5.1f}\u00b0".format(self.value)
+		self.draw_line()
+		#self.angle_view.draw_line(rc)
 
-		#else:
-		#    self.label_phi.text = 'phi: '+str(round(self.angle,1))
-		#    self.label_theta.text = 'theta: '+str(round(self.value,1))
+	def draw_line(self):
+		if self.ori is None: return
+		if self.circle_view is None: return
+		if self.circle_view.get_radius() is None: return
 
-		variante = self.variant
-		radd = rad*0.1
+		if self.val_ori != self.ori.orientation():
+			self.val_ori = self.ori.orientation()
+			self.circle_view.val_ori = self.val_ori
+
+		radius = self.circle_view.get_radius()
+		center = self.circle_view.get_circle()
+
+		balance = self.ori.balance()
+		txtangle = self.ori.txtori()
+		x,y = self.ori.xy()
+
+		x = x*radius/45.0 + center[0]
+		y = y*radius/45.0 + center[1]
 
 		cx = center[0]
 		cy = center[1]
 		alf = math.atan2(y-cy,x-cx)
-		xv = msiz/2.0 * math.cos(alf) + cx
-		yv = msiz/2.0 * math.sin(alf) + cy
-		xh = msiz/2.0 * math.cos(alf+math.pi) + cx
-		yh = msiz/2.0 * math.sin(alf+math.pi) + cy
-		xl = rad*4.5 * math.cos(alf-math.pi/2.0) + cx
-		yl = rad*4.5 * math.sin(alf-math.pi/2.0) + cy
-		xr = rad*4.5 * math.cos(alf+math.pi/2.0) + cx
-		yr = rad*4.5 * math.sin(alf+math.pi/2.0) + cy
+		xv = radius * math.cos(alf) + cx
+		yv = radius * math.sin(alf) + cy
+		xh = radius * math.cos(alf+math.pi) + cx
+		yh = radius * math.sin(alf+math.pi) + cy
+		xl = radius * math.cos(alf-math.pi/2.0) + cx
+		yl = radius * math.sin(alf-math.pi/2.0) + cy
+		xr = radius * math.cos(alf+math.pi/2.0) + cx
+		yr = radius * math.sin(alf+math.pi/2.0) + cy
 
-		def balance_label(color):
-			lbx = self.size[0]/2.0
-			lby = (self.size[1]-msiz)/4.0
-			if self.orientation=='horizontal':
-				lby = self.size[1]/2.0
-				lbx = self.size[0]-(self.size[0]-msiz)/4.0
-			rotated_text("{0: 5.2f}\u00b0".format(balance),
-					lbx,lby,txtangle,font_size=72,color=color)
+		variante = self.variant
 
 		self.canvas.after.clear()
 		with self.canvas.after:
 			if variante == 0:
 
-				balance_label([0.7,0.7,0.7,1])
+				self.balance_label(balance,txtangle,[0.7,0.7,0.7,1])
 				self.center_color(balance)
 
 				if self.ori.orientation() in ["LANDING","FLYING"]:
@@ -611,47 +511,24 @@ class LWorkWindow(BoxLayout):
 				else:
 					Line(points=[xv,yv,xh,yh],width=2.0)
 
-				''
 				PushMatrix()
 				Translate(x,y)
 				Rotate(angle=self.ori.phi,origin=(0,0))
-				Scale(msiz/18.0,origin=(0,0))
-				self.baloon()
+				Scale(radius/9.0,origin=(0,0))
+				baloon()
 				PopMatrix()
-
-				'''
-				PushMatrix()
-				Scale(0.5,origin=(x,y))
-				Ellipse(pos=(x-rad,y-rad),size=(2.0*rad,2.0*rad))
-				Color(0.1, 0.1, 0.1, 1)
-				Line(circle=(x,y,rad/1.0-radd),width=0.9)
-
-				exv = 2.0 * 0.9 * (xv - cx) / 9.0 + x
-				eyv = 2.0 * 0.9 * (yv - cy) / 9.0 + y
-				exh = 2.0 * 0.9 * (xh - cx) / 9.0 + x
-				eyh = 2.0 * 0.9 * (yh - cy) / 9.0 + y
-				exl = 2.0 * 0.9 * rad*4.5 * math.cos(alf-math.pi/1.5) / 9.0 + x
-				eyl = 2.0 * 0.9 * rad*4.5 * math.sin(alf-math.pi/1.5) / 9.0 + y
-				exr = 2.0 * 0.9 * rad*4.5 * math.cos(alf+math.pi/1.5) / 9.0 + x
-				eyr = 2.0 * 0.9 * rad*4.5 * math.sin(alf+math.pi/1.5) / 9.0 + y
-				Line(points=[exv,eyv,exl,eyl],width=0.9)
-				Line(points=[exv,eyv,exr,eyr],width=0.9)
-				Line(points=[exl,eyl,exr,eyr],width=0.9)
-				Line(points=[exv,eyv,exh,eyh],width=0.9)
-				PopMatrix()
-				'''
 
 			if variante == 1:
-				balance_label([0.7,0.7,0.7,1])
+				self.balance_label(balance,txtangle,[0.7,0.7,0.7,1])
 				self.center_color(balance)
 
 				if self.ori.orientation() in ["LANDING","FLYING"]:
-					x4 = msiz/18.0 * math.cos(alf+math.pi) + cx
-					y4 = msiz/18.0 * math.sin(alf+math.pi) + cy
-					x2 = rad*4.5 * math.cos(alf-math.pi/2.0) + center[0]
-					y2 = rad*4.5 * math.sin(alf-math.pi/2.0) + center[1]
-					x1 = rad*4.5 * math.cos(alf+math.pi/2.0) + center[0]
-					y1 = rad*4.5 * math.sin(alf+math.pi/2.0) + center[1]
+					x4 = radius/9.0 * math.cos(alf+math.pi) + cx
+					y4 = radius/9.0 * math.sin(alf+math.pi) + cy
+					x2 = radius * math.cos(alf-math.pi/2.0) + center[0]
+					y2 = radius * math.sin(alf-math.pi/2.0) + center[1]
+					x1 = radius * math.cos(alf+math.pi/2.0) + center[0]
+					y1 = radius * math.sin(alf+math.pi/2.0) + center[1]
 					if abs(balance) > 0.1:
 						Line(points=[cx,cy,xv,yv],width=2.0)
 						Line(points=[xv,yv,xl,yl],width=2.0)
@@ -663,47 +540,50 @@ class LWorkWindow(BoxLayout):
 						Line(points=[cx,cy,xv,yv],width=2.0)
 						Line(points=[cx,cy,xh,yh],width=2.0)
 
-				Ellipse(pos=(x-rad/2.0,y-rad/2.0),size=(rad,rad))
-				Color(0.1, 0.1, 0.1, 1)
-				Line(circle=(x,y,rad/2.0-radd),width=0.9)
+				PushMatrix()
+				Translate(x,y)
+				Rotate(angle=self.ori.phi,origin=(0,0))
+				Scale(radius/9.0,origin=(0,0))
+				baloon(triangle=False)
+				PopMatrix()
 
 			if variante == 2:
-				balance_label([0.7,0.7,0.7,1])
+				self.balance_label(balance,txtangle,[0.7,0.7,0.7,1])
 				self.center_color(balance)
 
 				if self.ori.orientation() in ["LANDING","FLYING"]:
-					xoh = msiz/18.0 * math.cos(alf+math.pi)
-					yoh = msiz/18.0 * math.sin(alf+math.pi)
+					xoh = radius/9.0 * math.cos(alf+math.pi)
+					yoh = radius/9.0 * math.sin(alf+math.pi)
 					if abs(balance) > 0.1:
 						Line(points=[cx+xoh,cy+yoh,xv,yv],width=2.0)
-						#Line(points=[xv,yv,xl,yl],width=2.0)
-						#Line(points=[xv,yv,xr,yr],width=2.0)
 						Line(bezier=[xv,yv,xl+xoh,yl+yoh,cx+xoh,cy+yoh],width=2.0)
 						Line(bezier=[xv,yv,xr+xoh,yr+yoh,cx+xoh,cy+yoh],width=2.0)
-						#Line(bezier=[xv,yv,xl,yl,x4,y4],width=2.0)
-						#Line(bezier=[xv,yv,xr,yr,x4,y4],width=2.0)
-						#Line(points=[cx,cy,xl,yl],width=2.0)
-						#Line(points=[cx,cy,xr,yr],width=2.0)
 				else:
 					if abs(balance) > 0.1:
 						Line(points=[cx,cy,xv,yv],width=2.0)
 						Line(points=[cx,cy,xh,yh],width=2.0)
 
-				Ellipse(pos=(x-rad/2.0,y-rad/2.0),size=(rad,rad))
-				Color(0.1, 0.1, 0.1, 1)
-				Line(circle=(x,y,rad/2.0-radd),width=0.9)
+				PushMatrix()
+				Translate(x,y)
+				Rotate(angle=self.ori.phi,origin=(0,0))
+				Scale(radius/9.0,origin=(0,0))
+				baloon(triangle=False)
+				PopMatrix()
 
 			if variante == 3:
+
+				PushMatrix()
+				Translate(cx,cy)
+				Rotate(angle=self.ori.phi,origin=(0,0))
+				Scale(radius,origin=(0,0))
+				triangle()
+				PopMatrix()
+
 				if self.ori.orientation() in ["LANDING","FLYING"]:
-					#Line(points=[cx,cy, xv, yv],width=2.0)
-					Color(1,1,1,0.1)
-					vertices = [xl,yl,0,0,xr,yr,0,0,xv,yv,0,0]
-					indices = [0,1,2]
-					Mesh(vertices=vertices, indices=indices).mode = 'triangle_fan'
 
 					Color(0.7, 0.7, 0.7, 1)   # hellgrau
-					Line(points=[x,cy-msiz/2,x,cy+msiz/2],width=1.0)
-					Line(points=[cx-msiz/2,y,cx+msiz/2,y],width=1.0)
+					Line(points=[x,cy-radius,x,cy+radius],width=1.0)
+					Line(points=[cx-radius,y,cx+radius,y],width=1.0)
 					'''
 					if x<cx:
 						rotated_text("{0: 5.2f}".format(self.ori.pitch()),cx+msiz/4,y,0,anchor=(0,1),font_size=32)
@@ -714,53 +594,48 @@ class LWorkWindow(BoxLayout):
 					else:
 						rotated_text("{0: 5.2f}".format(self.ori.roll()),x,cy-msiz/4,90,anchor=(0,1),font_size=32)
 					'''
-					rotated_text("{0: 5.2f}".format(balance),cx,cy,self.angle-90,anchor=(0,-3.5),font_size=56,color=[0.7, 0.7, 0.7, 1])
+					#rotated_text("{0: 5.2f}\u00b0".format(balance),cx,cy,self.angle-90,anchor=(0,-3.5),font_size=56,color=[0.7, 0.7, 0.7, 1])
 
 				else:
+
 					Color(0.7, 0.7, 0.7, 1)   # hellgrau
 					Line(points=[xv,yv,xh,yh],width=2.0)
 					if self.ori.orientation() in ['TOP','BOTTOM']:
-						Line(points=[x,cy-msiz/2,x,cy+msiz/2],width=1.0)
+						Line(points=[x,cy-radius,x,cy+radius],width=1.0)
 					else:
-						Line(points=[cx-msiz/2,y,cx+msiz/2,y],width=1.0)
+						Line(points=[cx-radius,y,cx+radius,y],width=1.0)
 
-					#rotated_text("{0: 5.2f}".format(balance),(cx+xh)/2,(cy+yh)/2,txtangle,anchor=(0,+1),font_size=56,color=[0.7, 0.7, 0.7, 1])
-					rotated_text("{0: 5.2f}".format(balance),(cx),(cy),txtangle,anchor=(0,-3.5),font_size=56,color=[0.7, 0.7, 0.7, 1])
+				#rotated_text("{0: 5.2f}\u00b0".format(balance),cx,cy,txtangle,anchor=(0,-3.5),font_size=56,color=[0.7, 0.7, 0.7, 1])
+				rotated_text("{0: 5.2f}\u00b0".format(balance),cx,cy,self.ori.phi-90,anchor=(0,-3.5),font_size=56,color=[0.7, 0.7, 0.7, 1])
 
-				#main_angle = -45.0+self.ori.phi-(self.ori.phi-45) % 90.0
-
+				# Kreuzungspunkt der linien
 				set_color([0.7, 0.7, 0.7, 1])   # hellgrau
 				PushMatrix()
 				Translate(x,y)
-				#Rotate(angle=45.0+self.ori.phi-(self.ori.phi-45) % 90.0,origin=(0,0))
-				Scale(msiz/120.0,origin=(0,0))
-				self.baloon(lscale=0.0)
+				Scale(radius/60.0,origin=(0,0))
+				baloon(lscale=0.0)
 				PopMatrix()
 
+				# ballon im zentrom
 				PushMatrix()
 				self.center_color(balance)
 				Translate(cx,cy)
 				Rotate(angle=self.ori.phi,origin=(0,0))
-				Scale(msiz/18.0,origin=(0,0))
-				self.baloon()
+				Scale(radius/9.0,origin=(0,0))
+				baloon()
 				PopMatrix()
 
-
 	# grephic helpers
-
-	def baloon(self,lcolor=[0.1,0.1,0.1,1],lwidth=1.0,lscale=0.9):
-		Ellipse(pos=(-1,-1),size=(2,2))
-		PushMatrix()
-		set_color(lcolor)
-		Scale(lscale,origin=(0,0))
-		Line(circle=(0,0,1.0),width=lwidth)
-		ex = math.cos(math.radians(30))
-		Line(points=[1.0,0.0,-0.5,-ex],width=lwidth)
-		Line(points=[1.0,0.0,-0.5,ex],width=lwidth)
-		Line(points=[-0.5,-ex,-0.5,ex],width=lwidth)
-		Line(points=[1.0,0.0,-1.0,0.0],width=lwidth)
-		PopMatrix()
-
+	def balance_label(self,balance,txtangle,color):
+		lbx = self.size[0]/2.0
+		#lby = (self.size[1]-msiz)/4.0
+		lby = self.size[1]/12
+		if self.orientation=='horizontal':
+			lby = self.size[1]/2.0
+			#lbx = self.size[0]-(self.size[0]-msiz)/4.0
+			lbx = self.right - self.size[0]/12
+		rotated_text("{0: 5.2f}\u00b0".format(balance),
+				lbx,lby,txtangle,font_size=72,color=color)
 
 	def center_color(self,balance):
 		good = 5.0
@@ -771,11 +646,13 @@ class LWorkWindow(BoxLayout):
 	def on_touch_down(self, touch):
 		# calibrieren, nur wenn im Zentrum innerhalb er erste 10 degrees:
 		msiz = min(self.size[0],self.size[1])
-		center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
-		dx = math.fabs(touch.pos[0] - center[0])
-		dy = math.fabs(touch.pos[1] - center[1])
-		if (msiz/90*10 > math.sqrt(dx*dx+dy*dy)):
-			self.calaStore.accept();
+		center = self.circle_view.get_circle()
+		if center is not None:
+			#center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
+			dx = math.fabs(touch.pos[0] - center[0])
+			dy = math.fabs(touch.pos[1] - center[1])
+			if (msiz/90*10 > math.sqrt(dx*dx+dy*dy)):
+				self.calaStore.accept();
 
 		# calibration zurücksetzen vorbereiten.
 		self.calaResetEvent =\
@@ -783,14 +660,16 @@ class LWorkWindow(BoxLayout):
 
 		# double tap
 		if touch.is_double_tap:
-		   #print ('py:',touch.pos[1],'msiz/2',msiz/2)
-		   if touch.pos[1] < msiz/2.0:
-			   self.variant += 1
-			   self.variant = self.variant % 4
-		   else:
-			   for c in self.children:
-				   c.on_touch_down(touch)
-		   pass
+			#print ('py:',touch.pos[1],'msiz/2',msiz/2)
+			if touch.pos[1] < msiz/2.0:
+				self.variant += 1
+				self.variant = self.variant % 4
+			else:
+				self.static_variant += 1
+				self.static_variant = self.static_variant % self.static_views.count()
+				self.update()
+				#for c in self.children:
+				#  c.on_touch_down(touch)
 
 		# desktop Variante:
 		app = Cache.get('LAppCache', 'mainApp')
