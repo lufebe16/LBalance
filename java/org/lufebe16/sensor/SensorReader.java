@@ -70,6 +70,7 @@ public class SensorReader implements SensorEventListener
             if (context != null) {
                 sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
                 Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+                //Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED);
                 supported = (sensor != null);
             }
         }
@@ -107,6 +108,7 @@ public class SensorReader implements SensorEventListener
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         running = true;
         Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        //Sensor sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED);
         if (sensor != null)
         {
             running = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL) && running;
@@ -122,7 +124,7 @@ public class SensorReader implements SensorEventListener
     private long lastMilis = 0;
 
     private double[] evalues = new double[3];
-    private Smoother esmooth = new Smoother(150);
+    private Smoother esmooth = new Smoother(80);
 
     public void onSensorChanged(SensorEvent event)
     {

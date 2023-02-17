@@ -22,7 +22,7 @@ class sensor_update(object):
 		self.smX = 0.0
 		self.smY = 0.0
 		self.smZ = 0.0
-		self.smooth = smoother.Smoother(0.2)
+		self.smooth = smoother.Smoother(0.1)
 
 	def run(self, dt):
 		#logging.info("Appli: sensor run update")

@@ -26,6 +26,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.core.window import Window
 from kivy.properties import StringProperty, ObjectProperty
 
+
 # =============================================================================
 # helpers.
 
@@ -34,7 +35,21 @@ from koords import kart,polar,polarDeg,normAngle,LValue
 # =============================================================================
 # graphic helpers
 
-from graphics import rotated_text, set_color, set_color_range, baloon, triangle
+from graphics import rotated_text, triangle, LFont
+
+#=============================================================================
+
+from calibration import CalaStore
+
+#=============================================================================
+# Definiert den App Hintergrund.
+
+from staticview import LCircleView, StaticViews
+
+#=============================================================================
+# Definiert den App Vordergrund
+
+from dynamicview import LAngleView, DynamicViews, Layouts
 
 # =============================================================================
 # kivy EventDispatcher passes keywords, that to not correspond to properties
@@ -73,25 +88,273 @@ class LabelButton(ButtonBehavior, Label, LBase):
 
 	def on_press(self):
 		#self.source = 'atlas://data/images/defaulttheme/checkbox_on'
-		pass
+		print ('on_press')
+		return False
 
 	def on_release(self):
 		#self.source = 'atlas://data/images/defaulttheme/checkbox_off'
-		pass
+		print ('on_release')
+		return False
 
 #=============================================================================
 
-from calibration import LCalaStore
+class CalaButton(LabelButton):
+	def __init__(self, **kw):
+		super(CalaButton, self).__init__(**kw)
+		CalaStore.bind(cala_state=self.cala_update)
+		#self.color = [0,0,0,1]
+		#self.color = [0.8,0.8,0.8,1]
+
+	def cala_update(self,obj,val):
+		if isinstance(val,LValue):
+			cal = CalaStore.numCalibrated(val)
+			if cal>0:
+				self.text = 'calibrated ({0:}x)'.format(cal)
+			else:
+				self.text = 'calibration'
+
+	def on_press(self):
+		print ('on_press cala')
+		CalaStore.accept();
+		return False
+
+	def on_release(self):
+		print ('on_release cala')
+		return False
+
+	def on_touch_down(self, touch):
+		super(CalaButton,self).on_touch_down(touch)
+		if self.collide_point(touch.x,touch.y):
+			print ('on_touch_down cala')
+		return False
+
+	def on_touch_up(self, touch):
+		super(CalaButton,self).on_touch_up(touch)
+		if self.collide_point(touch.x,touch.y):
+			print ('on_touch_up cala')
+			if (touch.time_end-touch.time_start) > 1.0:
+				CalaStore.reset()
+		return False
 
 #=============================================================================
-# Definiert den App Hintergrund.
 
-from staticview import LCircleView, StaticViews
+class LayoutButton(LabelButton):
+	def __init__(self, **kw):
+		super(LayoutButton, self).__init__(**kw)
+		self.color_save = None
+
+	def on_press(self):
+		#self.source = 'atlas://data/images/defaulttheme/checkbox_on'
+		print ('on_press layout')
+		self.color_save = self.color
+		self.color = [1,0,0,1]
+		Layouts.next()
+		return False
+
+	def on_release(self):
+		#self.source = 'atlas://data/images/defaulttheme/checkbox_off'
+		print ('on_release layout')
+		self.color = self.color_save
+		return False
 
 #=============================================================================
-# Definiert den App Vordergrund
 
-from dynamicview import LAngleView, DynamicViews
+class LStatusLine(BoxLayout,LBase):
+	def __init__(self,**kw):
+		super(LStatusLine, self).__init__(**kw)
+		with self.canvas.before:
+			Color(0.0, 0.4, 0.1, 1)   # blaugrün
+			self.rect = Rectangle(pos=self.pos, size=self.size)
+		self.bind(pos=self.update_rect)
+		self.bind(size=self.update_rect)
+
+		self.g = LabelButton(text="g",halign="center",valign="bottom")
+		self.phi = LabelButton(text="phi",halign="center")
+		self.theta = LabelButton(text="theta",halign="center")
+		self.xVal = LabelButton(text="xVal",halign="center")
+		self.yVal = LabelButton(text="yVal",halign="center")
+		self.zVal = LabelButton(text="zVal",halign="center")
+
+		LFont.bind_widget(self.g, LFont.small)
+		LFont.bind_widget(self.phi, LFont.small)
+		LFont.bind_widget(self.theta, LFont.small)
+		LFont.bind_widget(self.xVal, LFont.small)
+		LFont.bind_widget(self.yVal, LFont.small)
+		LFont.bind_widget(self.zVal, LFont.small)
+
+		self.add_widget(self.g)
+		self.add_widget(self.phi)
+		self.add_widget(self.theta)
+		self.add_widget(self.xVal)
+		self.add_widget(self.yVal)
+		self.add_widget(self.zVal)
+
+	def update_rect(self,*args):
+		self.rect.size = self.size
+		self.rect.pos = self.pos
+
+	def set_ori(self,angle):
+		self.g.update_angle(angle)
+		self.phi.update_angle(angle)
+		self.theta.update_angle(angle)
+		self.xVal.update_angle(angle)
+		self.yVal.update_angle(angle)
+		self.zVal.update_angle(angle)
+
+	def update(self,g,phi,theta,x,y,z):
+		self.g.text="g\n{0: 5.2f}".format(g)
+		self.phi.text="phi\n{0: 5.2f}\u00b0".format(phi)
+		self.theta.text="theta\n{0: 5.2f}\u00b0".format(theta)
+		self.xVal.text="x\n{0: 5.2f}".format(x)
+		self.yVal.text="y\n{0: 5.2f}".format(y)
+		self.zVal.text="z\n{0: 5.2f}".format(z)
+
+#=============================================================================
+
+class LHeaderLine(BoxLayout,LBase):
+	def __init__(self,**kw):
+		super(LHeaderLine, self).__init__(**kw)
+		with self.canvas.before:
+			Color(0, 0.00, 0.1, 1)   # schwarz mit blau stich
+			Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
+			Color(0.0, 0.4, 0.05, 1)   # blaugrün
+			self.rect = Rectangle(pos=self.pos, size=self.size)
+		self.bind(pos=self.update_rect)
+		self.bind(size=self.update_rect)
+
+		self.title = LabelButton(text="LBalance")
+		self.cala = CalaButton(text="calibrate",halign="center")
+		self.layout = LayoutButton(text="Layout")
+
+		LFont.bind_widget(self.title, LFont.small)
+		LFont.bind_widget(self.cala, LFont.small)
+		LFont.bind_widget(self.layout, LFont.small)
+
+		self.add_widget(self.title)
+		self.add_widget(self.cala)
+		self.add_widget(self.layout)
+
+	def update_rect(self,*args):
+		self.rect.size = self.size
+		self.rect.pos = self.pos
+
+	def set_ori(self,angle):
+		self.title.update_angle(angle)
+		self.cala.update_angle(angle)
+		self.layout.update_angle(angle)
+
+#=============================================================================
+# Versuch einer einfachen bias korrektur.
+# -> funktioniert nicht zufriedenstellend.
+# (man müsste auch noch die winkel berücksichtigen. Sind die Achsen
+# eventuell nicht genau orthogonal?) -> der grund der esten variante ist
+# dass hir max und min keine gute basis ist: wir messen so den tiefsten
+# und den höchsten wert + max. streubereich!
+# Variante 2 versucht von den reinen achsen den durchschnittlichen
+# minimal- und maximalwert zu ermitteln. Das braucht aber eine
+# sehr lange zeit zum einmessen, d.h. man muss lange mit dem Gerät
+# herumturnen. Dann aber werden recht gute Werte erreicht. Ist für die
+# Praxis aber ungeeignet.
+from smoother import Smoother
+
+class LSensorCalibration(object):
+
+	class summer(object):
+		def __init__(self,name):
+			self.name = name
+			self.val = 0.0
+			self.smooth = Smoother(200.0)
+			self.setup = True
+			# das gibt mit einmaligem updateTime unten genau 200
+			# schritte bis zum halben verfall.
+
+		def add(self,val):
+			if self.val == 0.0:
+				self.smooth.updateTime(0)
+			elif self.setup:
+				self.smooth.updateTime(1)
+				self.setup = False
+			self.val = self.smooth.updateValue(self.val,val)
+
+		def average(self):
+			print (self.name, self.val)
+			return self.val
+
+	def __init__(self):
+		self.max = [0.0,0.0,0.0]
+		self.min = [0.0,0.0,0.0]
+		self.maxPhi = [0.0,0.0,0.0]
+		self.minPhi = [0.0,0.0,0.0]
+		self.maxTheta = [0.0,0.0,0.0]
+		self.minTheta = [0.0,0.0,0.0]
+		self.refOri = { "landing": self.summer("landing"),
+										"flying": self.summer("flying"),
+										"bottom": self.summer("bottom"),
+										"top": self.summer("top"),
+										"left": self.summer("left"),
+										"right": self.summer("right")
+									}
+
+	def handleSensorCalibration2(self,vals):
+		x,y,z = vals[0],vals[1],vals[2]
+		rxyz = math.sqrt(x*x + y*y + z*z)
+		# nur wenn wir in der nähe der Achse sind wird aufgezeichnet.
+		if math.fabs(z) > 0.999 * rxyz:
+			if z > 0.0:
+				self.refOri["landing"].add(z)
+			else:
+				self.refOri["flying"].add(z)
+		if math.fabs(y) > 0.999 * rxyz:
+			if y > 0.0:
+				self.refOri["bottom"].add(y)
+			else:
+				self.refOri["top"].add(y)
+		if math.fabs(x) > 0.999 * rxyz:
+			if x > 0.0:
+				self.refOri["left"].add(x)
+			else:
+				self.refOri["right"].add(x)
+
+
+	def handleSensorCalibration(self,vals):
+		lv = LValue(vals[0],vals[1],vals[2])
+		for i in range(0,3):
+			if self.max[i] <= vals[i]:
+				self.max[i] = vals[i]
+				self.maxPhi[i] = lv.phi
+				self.maxTheta[i] = lv.theta
+			if self.min[i] >= vals[i]:
+				self.min[i] = vals[i]
+				self.minPhi[i] = lv.phi
+				self.minTheta[i] = lv.theta
+
+			print('sensor max[{0:}]: {1: 5.2f},{2: 5.2f},{3: 5.2f}'.format(i,self.max[i],self.maxPhi[i],self.maxTheta[i]))
+			print('sensor min[{0:}]: {1: 5.2f},{2: 5.2f},{3: 5.2f}'.format(i,self.min[i],self.minPhi[i],self.minTheta[i]))
+
+	def corr(self,vals):
+
+		print ("corr")
+		self.max[2] = self.refOri["landing"].average()
+		self.min[2] = self.refOri["flying"].average()
+		self.max[1] = self.refOri["bottom"].average()
+		self.min[1] = self.refOri["top"].average()
+		self.max[0] = self.refOri["left"].average()
+		self.min[0] = self.refOri["right"].average()
+
+		cVals = vals
+		for i in range(0,3):
+			if self.max[i] == 0: continue
+			if self.min[i] == 0: continue
+			bias = (self.max[i]+self.min[i])/2.0
+			gain = (self.max[i]-self.min[i])/2.0/9.81
+			if gain == 0.0: continue
+			cVals[i] = (vals[i]-bias)/gain
+
+			print('sensor[{0:}]: {1: 5.2f},{2: 5.2f}'.format(i,bias,gain))
+			print('sensor[{0:}]: {1: 5.2f} -> {2: 5.2f}'.format(i,vals[i],cVals[i]))
+		return cVals
+
+SensorCalibration = LSensorCalibration()
 
 #=============================================================================
 
@@ -101,31 +364,27 @@ class LWorkWindow(BoxLayout):
 
 		with self.canvas.before:
 			Color(0, 0.00, 0.1, 1)   # schwarz mit blau stich
-			#Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
+			Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
 			self.rect = Rectangle(pos=self.pos, size=self.size)
 
 		self.bind(pos=self.update)
 		self.bind(size=self.update)
 		self.update_event = None
 
-		# platzhalter für Status und Menüzeile (TBD)
-		self.label_cal = LabelButton(text="LBalance",font_size=32)
-		self.lcontainer = BoxLayout()
+		self.statusLine = LStatusLine()
+		self.headerLine = LHeaderLine()
 
 		# statische und variable views (background/foreground).
 		self.circle_view = None
 		self.angle_view = None
-		self.static_views = StaticViews()
-		self.dynamic_views = DynamicViews()
+		Layouts.bind(selected=self.update)
 
-		# Kalibrierung
 		self.ori = None
-		self.calaStore = LCalaStore()
 		self.calaResetEvent = None
 		self.val_ori = "LANDING"
 
 		# Variantesteurerung (vorläufig)
-		self.variant = 3
+		self.variant = 0
 		self.static_variant = 1
 
 	def update(self, *args):
@@ -138,88 +397,94 @@ class LWorkWindow(BoxLayout):
 
 		self.clear_widgets()
 		if self.size[0]>=self.size[1]:
-			self.orientation='horizontal'
-			self.lcontainer.orientation="vertical"
-			self.lcontainer.size_hint=(0.1,1)
-			self.lcontainer.clear_widgets()
-			self.lcontainer.add_widget(self.label_cal)
 			smin = self.size[1]
+			hswh = self.size[0]/15
+			self.orientation='horizontal'
+			self.headerLine.orientation="vertical"
+			self.headerLine.size_hint=(None,1)
+			self.headerLine.width=hswh
+			self.headerLine.set_ori(90)
+			self.statusLine.orientation="vertical"
+			self.statusLine.size_hint=(None,1)
+			self.statusLine.width=hswh
+			self.statusLine.set_ori(90)
 		else:
-			self.orientation='vertical'
-			self.lcontainer.orientation="horizontal"
-			self.lcontainer.size_hint=(1,0.1)
-			self.lcontainer.clear_widgets()
-			self.lcontainer.add_widget(self.label_cal)
 			smin = self.size[0]
+			hswh = self.size[1]/15
+			self.orientation='vertical'
+			self.headerLine.orientation="horizontal"
+			self.headerLine.size_hint=(1,None)
+			self.headerLine.height=hswh
+			self.headerLine.set_ori(0)
+			self.statusLine.orientation="horizontal"
+			self.statusLine.size_hint=(1,None)
+			self.statusLine.height=hswh
+			self.statusLine.set_ori(0)
 
-		self.circle_view =  self.static_views.view(self.static_variant)
-		self.angle_view = self.dynamic_views.view(self.variant)
+		LFont.set_screen_size(smin)
 
-		self.add_widget(self.lcontainer)
+		self.add_widget(self.headerLine)
+
+		#self.circle_view = Layouts.layout(self.variant).background()
+		#self.angle_view = Layouts.layout(self.variant).foreground()
+		self.circle_view = Layouts.current().background()
+		self.angle_view = Layouts.current().foreground()
 		self.add_widget(self.angle_view)
 		self.angle_view.set_background(self.circle_view)
 
+		self.add_widget(self.statusLine)
+
 	def refresh(self, valX, valY, valZ):
+
+		#SensorCalibration.handleSensorCalibration([valX,valY,valZ])
+		#SensorCalibration.handleSensorCalibration2([valX,valY,valZ])
+		#vals = SensorCalibration.corr([valX,valY,valZ])
+		#rv = LValue(vals[0],vals[1],vals[2])
+
 		rv = LValue(valX,valY,valZ)
-		rc = self.calaStore.handleCalibration(rv)
-		self.ori = rc
+		rc = CalaStore.handleCalibration(rv)
+		self.statusLine.update(rc.g,rc.phi,rc.theta,rc.valX,rc.valY,rc.valZ)
 
 		#cal = self.calaStore.isCalibrated(self.ori)
 		#if cal is not None:
 		#    self.label_cal.text = 'corr: '+cal
 		#else:
 		#    self.label_cal.text = ''
-
-		cal = self.calaStore.numCalibrated(self.ori)
+		'''
+		cal = CalaStore.numCalibrated(rc)
 		if cal > 0:
-			self.label_cal.text = str(cal)+' x calibrated'
+			self.headerLine.cala.text = 'calibrated ({0:}x)'.format(cal)
 		else:
-			self.label_cal.text = 'LBalance'
+			self.headerLine.cala.text = 'calibration'
+		'''
 
-		self.draw_line()
-		#self.angle_view.draw_line(rc)
-
-	def draw_line(self):
-		if self.ori is None: return
+		if rc is None: return
 		if self.circle_view is None: return
 		if self.circle_view.get_radius() is None: return
 
-		if self.val_ori != self.ori.orientation():
-			self.val_ori = self.ori.orientation()
+		# trigger orientation change with background layouts
+		if self.val_ori != rc.orientation():
+			self.val_ori = rc.orientation()
 			self.circle_view.val_ori = self.val_ori
 
-		self.angle_view.present(self.ori)
-		return
+		#self.circle_view.val_ori = rc.orientation()
 
+		self.angle_view.present(rc)
 
 	def on_touch_down(self, touch):
-		# calibrieren, nur wenn im Zentrum innerhalb er erste 10 degrees:
-		msiz = min(self.size[0],self.size[1])
-		center = self.circle_view.get_circle()
-		if center is not None:
-			#center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
-			dx = math.fabs(touch.pos[0] - center[0])
-			dy = math.fabs(touch.pos[1] - center[1])
-			if (msiz/90*10 > math.sqrt(dx*dx+dy*dy)):
-				self.calaStore.accept();
 
-		# calibration zurücksetzen vorbereiten.
-		self.calaResetEvent =\
-			Clock.schedule_once(lambda dt: self.calaStore.reset(),1.5)
+		for c in self.children:
+			if c.on_touch_down(touch): return
 
 		# double tap
+		'''
 		if touch.is_double_tap:
 			#print ('py:',touch.pos[1],'msiz/2',msiz/2)
-			if touch.pos[1] < msiz/2.0:
-				self.variant += 1
-				self.variant = self.variant % self.dynamic_views.count()
-				self.update()
-			else:
-				self.static_variant += 1
-				self.static_variant = self.static_variant % self.static_views.count()
-				self.update()
-				#for c in self.children:
-				#  c.on_touch_down(touch)
+			#if touch.pos[1] < self.size[1]/2.0:
+			self.variant += 1
+			self.variant = self.variant % Layouts.count()
+			self.update()
+		'''
 
 		# desktop Variante:
 		app = Cache.get('LAppCache', 'mainApp')
@@ -231,16 +496,13 @@ class LWorkWindow(BoxLayout):
 			theta = math.sqrt(px*px+py*py)
 			phi = math.atan2(py,px)
 			x,y,z = kart(9.81,phi,math.radians(theta))
-			self.ori = LValue(x,y,z)
-			self.draw_line()
+			self.refresh(x,y,z)
 
 		return False
 
 	def on_touch_up(self, touch):
-
-		# calibrations reset stoppen, wenn tap zu kurz:
-		if (touch.time_end-touch.time_start) < 1.0:
-		   Clock.unschedule(self.calaResetEvent)
+		for c in self.children:
+			if c.on_touch_up(touch): return
 		return False
 
 #=============================================================================

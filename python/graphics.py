@@ -4,6 +4,8 @@ import math
 
 from kivy.uix.label import Label
 from kivy.graphics import *
+from kivy.properties import NumericProperty
+from kivy.event import EventDispatcher
 
 # =============================================================================
 # graphic helpers
@@ -19,6 +21,7 @@ def rotated_text(text,x,y,angle=0,font_size=16,anchor=(0,0),color=[1,1,1,1]):
 	Rotate(angle=angle,origin=(x,y))
 	Rectangle(texture=t,pos=(x+xo,y+yo),size=t.size)
 	PopMatrix()
+	l.text = ""
 
 def set_color(color=[0,0,0,0]):
 	Color(color[0],color[1],color[2],color[3])
@@ -49,5 +52,35 @@ def triangle(lcolor=[1,1,1,0.1]):
 	vertices = [1.0,0.0,0,0, 0.0,-1.0,0,0, 0.0,1.0,0,0]
 	indices = [0,1,2]
 	Mesh(vertices=vertices, indices=indices).mode = 'triangle_fan'
+
+# =============================================================================
+
+class LFontSizer(EventDispatcher):
+	scdim = NumericProperty(480)
+
+	def __init__(self,**kw):
+		super(LFontSizer,self).__init__(**kw)
+
+	def set_screen_size(self,dim):
+		print ('screen_size =',dim)
+		self.scdim = dim
+
+	def small(self):
+		return self.scdim // 30
+
+	def middle(self):
+		return self.scdim // 15
+
+	def angle(self):
+		return self.scdim // 10
+
+	def bind_widget(self,widget,func):
+		def fsb(widget,func):
+			def sf(a,b):
+				widget.font_size = func()
+			return sf
+		self.bind(scdim=fsb(widget, func))
+
+LFont = LFontSizer()
 
 # =============================================================================

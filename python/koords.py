@@ -29,9 +29,22 @@ def polarDeg(x,y,z):
 
 # =============================================================================
 
+def normAngle360signed(angle):
+	angle = angle % 360.0
+	# REM: Modulo funktion ist heikel, da untesrchiedliche Implementationen
+	# existieren. python benutzt 'floored divison': Das Resultat hat das
+	# Vorzeichen vom Divisor. Im Gegensatz dazu verwendet math.fmod
+	# 'truncated deivision': Da erbt das Resultat das Vorzeichen vom Dividenden
+	# (wie auch in Java). Nach Wikipedia gibt es noch 3 weitere Verfahren,
+	# um modulo zu berechnen, jede mit unterschiedlichem Resultat!. ('Floored'
+	# und 'truncated' sind am weitesten verbreitet.).
+	if angle >= 180.0: angle -= 360.0
+	return angle
+
+# =============================================================================
+
 def normAngle(angle):
-	while angle < -180.0: angle += 360.0
-	while angle >= 180.0: angle -=360.0
+	angle = normAngle360signed(angle)
 	if angle > 90.0: angle = 180.0 - angle
 	if angle < -90.0: angle = -180.0 - angle
 	return angle

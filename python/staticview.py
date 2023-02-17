@@ -5,7 +5,7 @@ from kivy.uix.widget import Widget
 from kivy.properties import StringProperty
 from kivy.graphics import *
 
-from graphics import rotated_text
+from graphics import rotated_text, LFont, set_color
 
 #=============================================================================
 # Definiert den App Hintergrund.
@@ -74,7 +74,9 @@ class LCircleViewSimple(LCircleView):
 		c = self.center
 		r = self.radius
 
-		Color(0.5, 0.4, 1.0, 1)   # violett
+		set_color([0.0, 0.1, 0.0, 1])   # violett
+		Rectangle(pos=self.pos, size=self.size)
+		set_color([1, 0.1, 0.1, 1])   # violett
 		step = r / 45
 		for i in range(5,45,10):
 			Line(circle=(c[0],c[1],i*step),width=0.5)
@@ -113,7 +115,7 @@ class LCircleViewFineWithScale(LCircleView):
 	def draw(self):
 		angle = None
 		self.radius = 0.9*self.msiz/2
-		fs = 20
+		fs = LFont.small()
 		step = self.radius / 45
 		c = self.center
 		r = self.radius
