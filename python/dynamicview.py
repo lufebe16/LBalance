@@ -8,7 +8,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty
 from kivy.event import EventDispatcher
 
-from graphics import set_color, set_color_range, baloon, triangle, rotated_text, LFont
+from graphics import set_color, set_color_range, baloon, triangle, rotated_text, LFont, raute
 
 #=============================================================================
 # Definiert den App Vordergrund
@@ -74,7 +74,7 @@ class LAngleView(BoxLayout):
 				c.on_touch_down(touch)
 		return False
 
-	def balance_label(self,balance,txtangle,color):
+	def balance_label(self,balance,txtangle,color,anchor=(0,0)):
 		anf = LFont.angle()
 		lbx = self.size[0]/2.0
 		lby = self.size[1]/12
@@ -82,7 +82,7 @@ class LAngleView(BoxLayout):
 			lby = self.size[1]/2.0
 			lbx = self.size[0]/12
 		rotated_text("{0: 5.2f}\u00b0".format(balance),
-				lbx,lby,txtangle,font_size=anf,color=color)
+				lbx,lby,txtangle,font_size=anf,color=color,anchor=anchor)
 
 #=============================================================================
 
@@ -92,8 +92,8 @@ class LAngleViewSimple(LAngleView):
 
 	def draw(self,value):
 
-		radius = self.bckgnd.get_radius()
-		circle = self.bckgnd.get_circle()
+		radius = self.bckgnd.get_tacho_radius()
+		circle = self.bckgnd.get_tacho_center()
 
 		balance = value.balance()
 		txtangle = value.txtori()
@@ -140,8 +140,8 @@ class LAngleViewTriangle(LAngleView):
 		super(LAngleViewTriangle, self).__init__(**kw)
 
 	def draw(self,value):
-		radius = self.bckgnd.get_radius()
-		circle = self.bckgnd.get_circle()
+		radius = self.bckgnd.get_tacho_radius()
+		circle = self.bckgnd.get_tacho_center()
 
 		balance = value.balance()
 		txtangle = value.txtori()
@@ -202,8 +202,8 @@ class LAngleViewCurved(LAngleView):
 		super(LAngleViewCurved, self).__init__(**kw)
 
 	def draw(self,value):
-		radius = self.bckgnd.get_radius()
-		circle = self.bckgnd.get_circle()
+		radius = self.bckgnd.get_tacho_radius()
+		circle = self.bckgnd.get_tacho_center()
 
 		balance = value.balance()
 		txtangle = value.txtori()
@@ -255,10 +255,11 @@ class LAngleViewCurved(LAngleView):
 class LAngleViewFull(LAngleView):
 	def __init__(self,**kw):
 		super(LAngleViewFull, self).__init__(**kw)
+		self.trianglecolor = [1,1,1,0.1]
 
 	def draw(self,value):
-		radius = self.bckgnd.get_radius()
-		circle = self.bckgnd.get_circle()
+		radius = self.bckgnd.get_tacho_radius()
+		circle = self.bckgnd.get_tacho_center()
 
 		x,y = value.xy()
 		x = x*radius/45.0 + circle[0]
@@ -307,7 +308,7 @@ class LAngleViewFull(LAngleView):
 		Translate(cx,cy)
 		Rotate(angle=value.phi,origin=(0,0))
 		Scale(radius,origin=(0,0))
-		triangle()
+		triangle(self.trianglecolor)
 		PopMatrix()
 
 		Color(0.7, 0.7, 0.7, 1)   # hellgrau
@@ -345,6 +346,161 @@ class LAngleViewFull(LAngleView):
 
 #=============================================================================
 
+class LAngleViewFull2(LAngleViewFull):
+	def __init__(self,**kw):
+		super(LAngleViewFull2, self).__init__(**kw)
+		self.trianglecolor = [0.3, 0.1, 0.4, 0.5]
+
+#=============================================================================
+
+class LAngleViewAV(LAngleView):
+	def __init__(self,**kw):
+		super(LAngleViewAV, self).__init__(**kw)
+
+	def draw(self,value):
+
+		# Text ausgabe.
+		balance = value.balance()
+		anf = LFont.angle()
+		lbx = self.pos[0]+self.size[0]/2.0
+		lby = self.pos[1]+(self.size[1]-self.size[0])/2.0
+		ngl = 0
+		if self.size[0] > self.size[1]:
+			lby = self.pos[1]+self.size[1]/2.0
+			lbx = self.pos[0]+self.size[0]-(self.size[0]-self.size[1])/2.0
+			ngl = 90
+		rotated_text("{0: 5.2f}\u00b0".format(balance),
+				lbx,lby,ngl,font_size=anf,color=[0.95,0.95,0.95,1],anchor=(0,-1.2))
+
+		# Zeiger Darstellungen.
+		if value.orientation() in ["LANDING","FLYING"]:
+
+			radius = self.bckgnd.get_tacho_radius()
+			circle = self.bckgnd.get_tacho_center()
+
+			x,y = value.xy()
+			x = x*radius/45.0 + circle[0]
+			y = y*radius/45.0 + circle[1]
+
+			cx = circle[0]
+			cy = circle[1]
+			alf = math.atan2(y-cy,x-cx)
+			xv = radius * math.cos(alf) + cx
+			yv = radius * math.sin(alf) + cy
+
+			set_color([0.8,0,0,1])
+			if balance>0.1:
+				Line(points=[xv,yv,cx,cy],width=2.2)
+
+			PushMatrix()
+			Translate(x,y)
+			Rotate(angle=value.phi,origin=(0,0))
+			Scale(radius/14.0,origin=(0,0))
+			raute(lcolor=[0.8,0,0,1])
+			PopMatrix()
+
+		else:
+			length = self.bckgnd.get_meter_length()
+			center = self.bckgnd.get_meter_center()
+
+			# sowas wär modularer:
+			# p in [-1.0..1.0]
+			# x,y = self.bckgnd.get_meter_position(p)
+
+			x,y = value.xy()
+			x = x*length/45.0 + center[0]
+			y = y*length/45.0 + center[1]
+
+			PushMatrix()
+			Translate(x,y)
+			if value.orientation() in ["LEFT","RIGHT"]:
+				Scale(length/7,length/14,1,origin=(0,0))
+			else:
+				Scale(length/14,length/7,1,origin=(0,0))
+			raute(lcolor=[0.8,0,0,1])
+			PopMatrix()
+
+
+#=============================================================================
+
+from koords import LValue
+from gradient import Gradient
+#from  kivy.utils import get_color_from_hex
+
+class LAngleViewBA(LAngleView):
+	def __init__(self,**kw):
+		super(LAngleViewBA, self).__init__(**kw)
+
+		#Farben
+		self.deckweiss = [1,1,1,1]
+		self.horizontcolor = [0.0,0.0,1.0,1]
+		self.pitchnrollcolor = [1,1,0,1]
+		self.gradiblau = Gradient.horizontal(
+					[0.0,0.0,1.0,0.2],
+					[0.0,0.0,1.0,0.2],
+					[0.0,0.0,1.0,0.2],
+					[0.0,0.0,0.0,0.2])
+		self.gradigelb = Gradient.horizontal(
+					[1.0,1.0,0.0,0.2],
+					[1.0,1.0,0.0,0.2],
+					[1.0,1.0,0.0,0.2],
+					[0.0,0.0,0.0,0.2])
+
+	def draw(self,value):
+
+		radius = self.bckgnd.get_tacho_radius()
+		center = self.bckgnd.get_tacho_center()
+		cx = center[0]
+		cy = center[1]
+
+		x = value.rollExt()
+		y = value.pitchExt()
+		x = x*radius/45.0 + center[0]
+		y = y*radius/45.0 + center[1]
+
+		deckweiss = self.deckweiss
+		horizontcolor = self.horizontcolor
+		pitchnrollcolor = self.pitchnrollcolor
+		gradiblau = self.gradiblau
+		gradigelb = self.gradigelb
+
+		def xyLine(x,y,width=2.0):
+			PushMatrix()
+			Translate(x,y)
+			Rotate(angle=value.phi,origin=(0,0))
+			Scale(radius,origin=(0,0))
+			set_color(horizontcolor)
+			Line(points=[0.0,-3.0,0.0,3.0],width=width/max(radius,0.01))
+			#set_color([0.0,0.0,1.0,0.2])
+			#Rectangle(pos=(0.0,-1.0), size=(0.7,2.0))
+			set_color(deckweiss)
+			Rectangle(texture=gradiblau,pos=(0.0,-1.0), size=(1.0,2.0))
+			Rotate(angle=180,origin=(0,0))
+			#set_color([1.0,1.0,0.0,0.2])
+			#Rectangle(pos=(0.0,-1.0), size=(0.7,2.0))
+			set_color(deckweiss)
+			Rectangle(texture=gradigelb,pos=(0.0,-1.0), size=(1.0,2.0))
+			PopMatrix()
+
+		# künstl horizont:
+		phiR = math.radians(value.phi)
+		xyLine(x,y)
+		xyLine(x+2*radius*math.cos(phiR),y+2*radius*math.sin(phiR))
+		xyLine(x-2*radius*math.cos(phiR),y-2*radius*math.sin(phiR))
+
+		# pitch und roll
+		set_color(pitchnrollcolor)
+		wid = 1.5
+		Line(points=[x,self.parent.pos[1],x,self.parent.pos[1]+self.parent.size[1]],width=wid)
+		Line(points=[self.parent.pos[0],y,self.parent.pos[0]+self.parent.size[0],y],width=wid)
+		Ellipse(pos=(x-10,y-10),size=(20,20))
+
+		# TBD: Winkel anschriften
+
+		#print (self.val_ori)
+
+#=============================================================================
+
 class DynamicViews(object):
 
 	def __init__(self):
@@ -365,13 +521,19 @@ class DynamicViews(object):
 #=============================================================================
 
 from staticview \
-	import LCircleViewSimple,LCircleViewFine,LCircleViewFineWithScale
+	import LCircleViewSimple,LCircleViewFine, \
+		LCircleViewFineWithScale,LCircleViewAV, \
+		LCircleViewBA
 
 import json
 
 class LLayout(object):
-	def __init__(self, dv, bg):
-		self.layout = { "foreground": dv, "background": bg }
+	def __init__(self, dv, bg, sc):
+		self.layout = {
+			"foreground": dv,
+			"background": bg,
+			"statuscolor": sc
+			}
 
 	def background(self):
 		return self.layout["background"]()
@@ -379,15 +541,27 @@ class LLayout(object):
 	def foreground(self):
 		return self.layout["foreground"]()
 
+	def statuscolor(self):
+		return self.layout["statuscolor"]
+
+
 class LLayouts(EventDispatcher):
 	selected = NumericProperty(0)
 
 	def __init__(self,**kw):
 		super(LLayouts,self).__init__(**kw)
 		self.layouts = []
-		self.layouts.append(LLayout(LAngleViewCurved,LCircleViewSimple))
-		self.layouts.append(LLayout(LAngleViewFull,LCircleViewFine))
-		self.layouts.append(LLayout(LAngleViewFull,LCircleViewFineWithScale))
+		self.layouts.append(LLayout(
+			LAngleViewCurved,LCircleViewSimple,[0.7, 0.1, 0.1, 1]))
+		self.layouts.append(LLayout(
+			LAngleViewFull,LCircleViewFine,[0.0, 0.4, 0.1, 1]))
+		self.layouts.append(LLayout(
+			#LAngleViewFull,LCircleViewFineWithScale,[0.0, 0.4, 0.1, 1]))
+			LAngleViewFull2,LCircleViewFineWithScale,[0.2, 0.05, 0.3, 1]))
+		self.layouts.append(LLayout(
+			LAngleViewAV,LCircleViewAV,[0.8, 0.1, 0.1, 1]))
+		self.layouts.append(LLayout(
+			LAngleViewBA,LCircleViewBA,[0.15, 0.15, 0.15, 0.5]))
 		self.read()
 
 	def current(self):
@@ -414,7 +588,10 @@ class LLayouts(EventDispatcher):
 		try:
 			fp = open("ww_layout.json",'r')
 			if fp:
-				self.selected = json.load(fp)
+				sel = json.load(fp)
+				if sel>=self.count(): sel = 0
+				if sel<0: sel = 0
+				self.selected = sel
 		except:
 			pass
 

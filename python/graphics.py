@@ -53,6 +53,13 @@ def triangle(lcolor=[1,1,1,0.1]):
 	indices = [0,1,2]
 	Mesh(vertices=vertices, indices=indices).mode = 'triangle_fan'
 
+def raute(lcolor=[1,1,1,0.1]):
+	set_color(lcolor)
+	vertices = [1.0,0.0,0,0, 0.0,1.0,0,0, -1.0,0.0,0,0,
+	            1.0,0.0,0,0,  0.0,-1.0,0,0, -1.0,0.0,0,0]
+	indices = [0,1,2,4,5,6]
+	Mesh(vertices=vertices, indices=indices).mode = 'triangle_fan'
+
 # =============================================================================
 
 class LFontSizer(EventDispatcher):

@@ -1,6 +1,8 @@
 
 import math
 
+#=============================================================================
+
 class Smoother(object):
 
 	def __init__(self, halfLive = 1.0, wmin = None, wmax = None):
@@ -50,3 +52,26 @@ class Smoother(object):
 			return self.norm(b*d + r)
 		else:
 			return b*(smoothed-raw) + raw
+
+
+#=============================================================================
+
+class Mean(object):
+
+	def __init__(self, nvalues):
+		self.nvalues = nvalues
+		self.values = []
+
+	def add_value(self,value):
+		self.values.append(value)
+		if len(self.values) > nvalues:
+			del self.values[0]
+
+	def get_mean(self):
+		mean = 0
+		if len(self.values) > 0:
+			mean = sum(self.values) / len(self.values)
+		return mean
+
+#=============================================================================
+

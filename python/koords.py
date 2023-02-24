@@ -94,6 +94,20 @@ class LValue(object):
 	def roll(self):
 		return (90.0-math.fabs(self.theta)) * math.cos(math.radians(self.phi))
 
+	def pitchExt(self):
+		theta = self.theta
+		if self.valZ < 0.0:
+			if theta > 0: theta = 180 - theta
+			if theta < 0: theta = -180 - theta
+		return (90.0-math.fabs(theta)) * math.sin(math.radians(self.phi))
+
+	def rollExt(self):
+		theta = self.theta
+		if self.valZ < 0.0:
+			if theta > 0: theta = 180 - theta
+			if theta < 0: theta = -180 - theta
+		return (90.0-math.fabs(theta)) * math.cos(math.radians(self.phi))
+
 	def balance(self):
 		return self.bala
 

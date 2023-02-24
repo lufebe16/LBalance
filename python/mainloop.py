@@ -13,6 +13,14 @@ import smoother
 
 #=============================================================================
 
+def int32(i):
+	i = i & 0xffffffff
+	if i > 0x80000000:
+		return 0x80000000 - i
+	return i
+
+#=============================================================================
+
 class sensor_update(object):
 
 	def __init__(self, reader, view):
@@ -36,7 +44,6 @@ class sensor_update(object):
 			self.view.refresh(self.smX, self.smY, self.smZ)
 			#et = time.time()
 			#logging.info("Appli: view refresh: %s" % str(round(et-st,3)))
-
 
 	def start_reading(self):
 		logging.info("Appli: sensor start update")
@@ -70,6 +77,17 @@ class Appli(LApp):
 		self.mainWindow.setWork(self.view)
 		self.sensor_update = sensor_update(self.sensor_reader,self.view)
 		self.sensor_update.start_reading()
+
+		'''
+		if sensors.jnius is not None:
+			w = sensors.currentActivity.getWindow()
+			print ('current window: ',w)
+			if w is not None:
+				# w.addFlags(-2147483648) # (-> geht nicht wir sind im falsche thread).
+				w.setStatusBarColor(int32(0xff888888))
+				w.setNavigationBarColor(int32(0xff777777))
+				print ('current window, colors set')
+		'''
 
 	def on_stop(self):
 		logging.info("Appli: on_stop")

@@ -342,7 +342,7 @@ android.release_artifact = apk
 
 # (str) python-for-android git clone directory (if empty, it will be automatically cloned from github)
 #p4a.source_dir =
-p4a.source_dir = /home/lb/SourcePackages/python-for-android/python-for-android
+#p4a.source_dir = /home/lb/SourcePackages/python-for-android/python-for-android
 
 # (str) The directory in which python-for-android should look for your own build recipes (if any)
 #p4a.local_recipes =

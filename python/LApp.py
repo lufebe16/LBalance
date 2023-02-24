@@ -35,7 +35,7 @@ from koords import kart,polar,polarDeg,normAngle,LValue
 # =============================================================================
 # graphic helpers
 
-from graphics import rotated_text, triangle, LFont
+from graphics import rotated_text, triangle, LFont, set_color
 
 #=============================================================================
 
@@ -162,9 +162,10 @@ class LayoutButton(LabelButton):
 class LStatusLine(BoxLayout,LBase):
 	def __init__(self,**kw):
 		super(LStatusLine, self).__init__(**kw)
+		self.background_color = [0.0, 0.4, 0.1, 1]
 		with self.canvas.before:
-			Color(0.0, 0.4, 0.1, 1)   # blaugrün
-			self.rect = Rectangle(pos=self.pos, size=self.size)
+			set_color(self.background_color)
+			Rectangle(pos=self.pos, size=self.size)
 		self.bind(pos=self.update_rect)
 		self.bind(size=self.update_rect)
 
@@ -189,9 +190,14 @@ class LStatusLine(BoxLayout,LBase):
 		self.add_widget(self.yVal)
 		self.add_widget(self.zVal)
 
+		Layouts.bind(selected=self.update_rect)
+
 	def update_rect(self,*args):
-		self.rect.size = self.size
-		self.rect.pos = self.pos
+		self.background_color = Layouts.current().statuscolor()
+		self.canvas.before.clear()
+		with self.canvas.before:
+			set_color(self.background_color)
+			Rectangle(pos=self.pos, size=self.size)
 
 	def set_ori(self,angle):
 		self.g.update_angle(angle)
@@ -214,11 +220,12 @@ class LStatusLine(BoxLayout,LBase):
 class LHeaderLine(BoxLayout,LBase):
 	def __init__(self,**kw):
 		super(LHeaderLine, self).__init__(**kw)
+		self.background_color = [0.0, 0.4, 0.05, 1]
 		with self.canvas.before:
-			Color(0, 0.00, 0.1, 1)   # schwarz mit blau stich
-			Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
-			Color(0.0, 0.4, 0.05, 1)   # blaugrün
-			self.rect = Rectangle(pos=self.pos, size=self.size)
+			#Color(0, 0.00, 0.1, 1)   # schwarz mit blau stich
+			#Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
+			set_color(self.background_color)   # blaugrün
+			Rectangle(pos=self.pos, size=self.size)
 		self.bind(pos=self.update_rect)
 		self.bind(size=self.update_rect)
 
@@ -233,10 +240,14 @@ class LHeaderLine(BoxLayout,LBase):
 		self.add_widget(self.title)
 		self.add_widget(self.cala)
 		self.add_widget(self.layout)
+		Layouts.bind(selected=self.update_rect)
 
 	def update_rect(self,*args):
-		self.rect.size = self.size
-		self.rect.pos = self.pos
+		self.background_color = Layouts.current().statuscolor()
+		self.canvas.before.clear()
+		with self.canvas.before:
+			set_color(self.background_color)
+			Rectangle(pos=self.pos, size=self.size)
 
 	def set_ori(self,angle):
 		self.title.update_angle(angle)
@@ -365,6 +376,7 @@ class LWorkWindow(BoxLayout):
 		with self.canvas.before:
 			Color(0, 0.00, 0.1, 1)   # schwarz mit blau stich
 			Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
+			Color(0.15, 0.00, 0.3, 0.2)   # schwrz transparent.
 			self.rect = Rectangle(pos=self.pos, size=self.size)
 
 		self.bind(pos=self.update)
@@ -425,8 +437,6 @@ class LWorkWindow(BoxLayout):
 
 		self.add_widget(self.headerLine)
 
-		#self.circle_view = Layouts.layout(self.variant).background()
-		#self.angle_view = Layouts.layout(self.variant).foreground()
 		self.circle_view = Layouts.current().background()
 		self.angle_view = Layouts.current().foreground()
 		self.add_widget(self.angle_view)
@@ -460,7 +470,7 @@ class LWorkWindow(BoxLayout):
 
 		if rc is None: return
 		if self.circle_view is None: return
-		if self.circle_view.get_radius() is None: return
+		#if self.circle_view.get_tacho_radius() is None: return
 
 		# trigger orientation change with background layouts
 		if self.val_ori != rc.orientation():
@@ -476,23 +486,15 @@ class LWorkWindow(BoxLayout):
 		for c in self.children:
 			if c.on_touch_down(touch): return
 
-		# double tap
-		'''
-		if touch.is_double_tap:
-			#print ('py:',touch.pos[1],'msiz/2',msiz/2)
-			#if touch.pos[1] < self.size[1]/2.0:
-			self.variant += 1
-			self.variant = self.variant % Layouts.count()
-			self.update()
-		'''
-
 		# desktop Variante:
 		app = Cache.get('LAppCache', 'mainApp')
 		if app.sensor_reader is None:
 			# wir rechnen x,y,z anhand der touch pos zurück.
-			rad = min(self.size[1],self.size[0])/2
-			px = (touch.pos[0] - self.size[0]/2) / rad * 45
-			py = (touch.pos[1] - self.size[1]/2)  / rad * 45
+
+			rad = self.circle_view.get_tacho_radius()
+			cent = self.circle_view.get_tacho_center()
+			px = (touch.pos[0] - cent[0]) / rad * 45
+			py = (touch.pos[1] - cent[1])  / rad * 45
 			theta = math.sqrt(px*px+py*py)
 			phi = math.atan2(py,px)
 			x,y,z = kart(9.81,phi,math.radians(theta))

@@ -20,12 +20,9 @@ class LCircleView(Widget):
 		self.bind(pos=self.update)
 		self.bind(size=self.update)
 		self.update_event = None
-		self.variante = 1
-		self.msiz = None
-		self.radius = None	# radisus of circle
-		self.circle = None	# center of circle
-
-		self.variants = []
+		self.msiz = 0
+		self.radius = 0.0
+		self.circle = (0.0,0.0)
 
 	def update(self, *args):
 		Clock.unschedule(self.update_event)
@@ -49,19 +46,29 @@ class LCircleView(Widget):
 		# TBI in derived class if needed
 		pass
 
-	def get_radius(self):
-		return self.radius
+	def get_tacho_center(self):
+		# TBI in derived class if needed
+		pass
 
-	def get_circle(self):
-		return self.circle
+	def get_tacho_radius(self):
+		# TBI in derived class if needed
+		pass
 
-	def on_touch_down(self, touch):
-		# double tap
-		if touch.is_double_tap:
-			self.variante += 1
-			self.variante = self.variante % 3
-			self.update()
-		return False
+	def get_tacho_angle(self):
+		# TBI in derived class if needed
+		pass
+
+	def get_meter_center(self):
+		# TBI in derived class if needed
+		return self.get_tacho_center()
+
+	def get_meter_length(self):
+		# TBI in derived class if needed
+		return self.get_tacho_radius()
+
+	def get_meter_angle(self):
+		# TBI in derived class if needed
+		return self.get_tacho_angle()
 
 #=============================================================================
 
@@ -69,6 +76,15 @@ class LCircleViewSimple(LCircleView):
 
 	def __init__(self,**kw):
 		super(LCircleViewSimple, self).__init__(**kw)
+
+	def get_tacho_center(self):
+		return self.center
+
+	def get_tacho_radius(self):
+		return self.radius
+
+	def get_tacho_angle(self):
+		return 0
 
 	def draw(self):
 		c = self.center
@@ -88,6 +104,15 @@ class LCircleViewFine(LCircleView):
 
 	def __init__(self,**kw):
 		super(LCircleViewFine, self).__init__(**kw)
+
+	def get_tacho_center(self):
+		return self.center
+
+	def get_tacho_radius(self):
+		return self.radius
+
+	def get_tacho_angle(self):
+		return 0
 
 	def draw(self):
 		c = self.center
@@ -112,6 +137,15 @@ class LCircleViewFineWithScale(LCircleView):
 			self.update()
 		self.last_val_ori = self.val_ori
 
+	def get_tacho_center(self):
+		return self.center
+
+	def get_tacho_radius(self):
+		return self.radius
+
+	def get_tacho_angle(self):
+		return 0
+
 	def draw(self):
 		angle = None
 		self.radius = 0.9*self.msiz/2
@@ -120,6 +154,9 @@ class LCircleViewFineWithScale(LCircleView):
 		c = self.center
 		r = self.radius
 		m = self.msiz/2
+
+		set_color([0.0, 0.1, 0.0, 1])   # black
+		Rectangle(pos=self.pos, size=self.size)
 
 		# beschriftungs richtung
 		axis_dir = 1
@@ -165,6 +202,199 @@ class LCircleViewFineWithScale(LCircleView):
 
 #=============================================================================
 
+class LCircleViewAV(LCircleView):
+
+	def __init__(self,**kw):
+		super(LCircleViewAV, self).__init__(**kw)
+		self.d = 0.2
+		self.w = 1.4
+		self.h = 6.1
+		self.n = 8.1
+
+	def on_val_ori(self,*args):
+		self.update()
+		self.last_val_ori = self.val_ori
+
+	def calcLin(self):
+		for i in range(-44,45,2):
+			set_color([0,0,0,1])
+			if i % 10 == 0:
+				Line(points=[i,0,i,3],width=0.12)
+			else:
+				Line(points=[i,0,i,1.5],width=0.12)
+
+	def calcSkala(self):
+		self.calcLin()
+		PushMatrix()
+		Rotate(angle=180.0,origin=(0,0))
+		self.calcLin()
+		PopMatrix()
+		PushMatrix()
+		Translate(0,10)
+		Rotate(angle=180.0,origin=(0,0))
+		self.calcLin()
+		PopMatrix()
+		PushMatrix()
+		Translate(0,-10)
+		self.calcLin()
+		PopMatrix()
+		Line(points=[-45,0,45,0],width=0.12)
+
+	def calcCircle(self):
+		for i in range(0,50,5):
+			Line(circle=(0,0,i),width=0.12)
+		Line(points=[-50,0,50,0],width=0.12)
+		Line(points=[0,-50,0,50],width=0.12)
+
+	def picture(self,colorc,color1,color2):
+		d = self.d
+		w = self.w
+		h = self.h
+		set_color(colorc) # gelb
+		Ellipse(pos=(2*d+w,d),size=(6.1,6.1))
+		set_color(color1)
+		Rectangle(pos=(d,d),size=(w,h))
+		set_color(color2)
+		Rectangle(pos=(2*d+w,2*d+h),size=(h,w))
+
+		PushMatrix()
+		Translate(2*d+w+h/2,2*d+h+w/2.0)
+		Scale(6.1/90.0,origin=(0,0))
+		self.calcSkala()
+		PopMatrix()
+
+		PushMatrix()
+		Translate(d+w/2,d+h/2.0)
+		Rotate(angle=90.0,origin=(0,0))
+		Scale(6.1/90.0,origin=(0,0))
+		self.calcSkala()
+		PopMatrix()
+
+		PushMatrix()
+		Translate(2*d+w+h/2,d+h/2.0)
+		Scale(6.1/90.0,origin=(0,0))
+		self.calcCircle()
+		PopMatrix()
+
+	def draw(self):
+		c = self.center
+		r = self.radius
+
+		white = [0.92,0.92,0.92,1]
+		yellow = [1.0,0.92,0.0,1]
+		colorc = white
+		color1 = white
+		color2 = white
+		if self.val_ori in ['LANDING','FLYING']:
+			colorc = yellow
+		elif self.val_ori in ['BOTTOM','TOP']:
+			color1 = yellow
+		else:
+			color2 = yellow
+
+		set_color([0.0, 0.1, 0.0, 1])   # black
+		Rectangle(pos=self.pos, size=self.size)
+
+		# RandLinie
+		set_color([1.0, 1, 1.0, 1])   # violett
+		m = self.msiz/2.0
+		t = 2.0
+		Line(points=(
+			c[0]-m+t,c[1]-m+t,
+			c[0]+m-t,c[1]-m+t,
+			c[0]+m-t,c[1]+m-t,
+			c[0]-m+t,c[1]+m-t,
+			c[0]-m+t,c[1]-m+t),
+			width=2.0*t)
+
+		PushMatrix()
+		if (self.size[0]<self.size[1]):
+			Translate(0,self.pos[1]+(self.size[1]/2.0-m))
+			Scale(2.0*m/8.1,origin=(0,0))
+			self.picture(colorc,color2,color1)
+		else:
+			Translate(self.pos[0]+self.size[0]/2.0+m,0)
+			Scale(2.0*m/8.1,origin=(0,0))
+			Rotate(angle=90.0,origin=(0,0))
+			self.picture(colorc,color1,color2)
+		PopMatrix()
+
+	def get_tacho_center(self):
+		c = self.center
+		m = self.msiz/2.0
+		if (self.size[0]<self.size[1]):
+			return (c[0]-m+2.0*m*(2*self.d+self.w+self.h/2.0)/self.n,
+							c[1]-m+2.0*m*(self.d+self.h/2.0)/self.n)
+		else:
+			return (c[0]-m+2.0*m*(2*self.d+self.w+self.h/2.0)/self.n,
+							c[1]-m+2.0*m*(2*self.d+self.w+self.h/2.0)/self.n)
+		return self.center
+
+	def get_tacho_radius(self):
+		return self.h/2.0 * self.msiz/self.n
+
+	def get_tacho_angle(self):
+		return 0
+
+	def get_meter_center(self):
+		c = self.center
+		m = self.msiz/2.0
+		if self.val_ori in ['BOTTOM','TOP']:
+			if (self.size[0]<self.size[1]):
+				return (c[0]-m+2.0*m*(2*self.d+self.w+self.h/2.0)/self.n,
+								c[1]-m+2.0*m*(2*self.d+self.h+self.w/2.0)/self.n)
+			else:
+				return (c[0]-m+2.0*m*(2*self.d+self.w+self.h/2.0)/self.n,
+								c[1]-m+2.0*m*(self.d+self.w/2.0)/self.n)
+
+		elif self.val_ori in ['LEFT','RIGHT']:
+			if (self.size[0]<self.size[1]):
+				return (c[0]-m+2.0*m*(self.d+self.w/2.0)/self.n,
+								c[1]-m+2.0*m*(self.d+self.h/2.0)/self.n)
+			else:
+				return (c[0]-m+2.0*m*(self.d+self.w/2.0)/self.n,
+								c[1]-m+2.0*m*(2*self.d+self.w+self.h/2.0)/self.n)
+
+		return self.get_tacho_center()
+
+	def get_meter_length(self):
+		return self.get_tacho_radius()
+
+#=============================================================================
+
+from kivy.graphics.scissor_instructions import ScissorPush, ScissorPop
+
+class LCircleViewBA(LCircleView):
+
+	def __init__(self,**kw):
+		super(LCircleViewBA, self).__init__(**kw)
+
+	def draw(self):
+		#ScissorPush(
+		#	x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
+
+		set_color([0.02, 0.02, 0.02, 1])   # black
+		Rectangle(pos=self.pos, size=self.size)
+
+		set_color([1, 1, 1, 1])   # violett
+		r = self.get_tacho_radius()
+		c = self.get_tacho_center()
+		step = r / 45
+		for i in range(5,45,5):
+			Line(circle=(c[0],c[1],i*step),width=0.5)
+		Line(circle=(c[0],c[1],45*step),width=0.7)
+
+		#ScissorPop()
+
+	def get_tacho_center(self):
+		return self.center
+
+	def get_tacho_radius(self):
+		#return self.radius/2.5
+		return self.radius*3.0
+
+#=============================================================================
+
 class StaticViews(object):
 
 	def __init__(self):
@@ -173,6 +403,7 @@ class StaticViews(object):
 		self.views.append(LCircleViewSimple)
 		self.views.append(LCircleViewFine)
 		self.views.append(LCircleViewFineWithScale)
+		self.views.append(LCircleViewAV)
 
 	def count(self):
 		return len(self.views)
