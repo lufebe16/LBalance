@@ -376,13 +376,16 @@ class LCircleViewBA(LCircleView):
 		set_color([0.02, 0.02, 0.02, 1])   # black
 		Rectangle(pos=self.pos, size=self.size)
 
-		set_color([1, 1, 1, 1])   # violett
+		set_color([0.2, 0.2, 0.2, 1])   # grau
 		r = self.get_tacho_radius()
 		c = self.get_tacho_center()
 		step = r / 45
-		for i in range(5,45,5):
-			Line(circle=(c[0],c[1],i*step),width=0.5)
-		Line(circle=(c[0],c[1],45*step),width=0.7)
+		for i in range(5,46,5):
+			Line(circle=(c[0],c[1],i*step),width=1.5)
+		Line(circle=(c[0],c[1],45*step),width=1.5)
+
+		set_color([0.1, 0.1, 0.1, 0.5])   # grau
+		Line(circle=(c[0],c[1],277),width=50)
 
 		#ScissorPop()
 
@@ -390,7 +393,8 @@ class LCircleViewBA(LCircleView):
 		return self.center
 
 	def get_tacho_radius(self):
-		#return self.radius/2.5
+		#return self.radius/3
+		#return self.radius
 		return self.radius*3.0
 
 #=============================================================================

@@ -3,6 +3,7 @@
 import math
 from koords import LValue
 import json
+from storage import ConfigDir
 
 #=============================================================================
 
@@ -17,7 +18,7 @@ class LCalaStore(EventDispatcher):
 		self.store = {}
 		self.accept_one = False
 		self.last_ori = None
-		self.load()
+		self.read()
 
 	def reset(self):
 		self.store = {}
@@ -51,6 +52,7 @@ class LCalaStore(EventDispatcher):
 		else:
 			self.store[ori]['Y'].append(rawValue.valY)
 
+		self.save()
 		print ("LCalaStore: new value added")
 		self.accept_one = False
 		return True
@@ -74,7 +76,6 @@ class LCalaStore(EventDispatcher):
 		if vz2 > 0.0:
 			valZ = rawValue.g-math.sqrt(vz2)
 
-		self.save()
 		return LValue(rawValue.valX+valX,rawValue.valY+valY,rawValue.valZ+valZ)
 
 	def handleCalibration(self,rawValue):
@@ -85,16 +86,18 @@ class LCalaStore(EventDispatcher):
 
 	def save(self):
 		try:
-			fp = open("ww_cala.json","w")
+			fp = open(ConfigDir.get()+"/ww_cala.json","w")
 			json.dump(self.store,fp)
 		except:
+			print("cala. write error")
 			pass
 
-	def load(self):
+	def read(self):
 		try:
-			fp = open("ww_cala.json","r")
+			fp = open(ConfigDir.get()+"/ww_cala.json","r")
 			self.store = json.load(fp)
 		except:
+			print("cala. read error")
 			pass
 
 #=============================================================================

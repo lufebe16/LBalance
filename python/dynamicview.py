@@ -8,7 +8,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty
 from kivy.event import EventDispatcher
 
+from storage import ConfigDir
 from graphics import set_color, set_color_range, baloon, triangle, rotated_text, LFont, raute
+from koords import normAngle
 
 #=============================================================================
 # Definiert den App Vordergrund
@@ -236,8 +238,8 @@ class LAngleViewCurved(LAngleView):
 			yoh = radius/9.0 * math.sin(alf+math.pi)
 			if abs(balance) > 0.1:
 				Line(points=[cx+xoh,cy+yoh,xv,yv],width=2.0)
-				Line(bezier=[xv,yv,xl+xoh,yl+yoh,cx+xoh,cy+yoh],width=2.0)
-				Line(bezier=[xv,yv,xr+xoh,yr+yoh,cx+xoh,cy+yoh],width=2.0)
+				#Line(bezier=[xv,yv,xl+xoh,yl+yoh,cx+xoh,cy+yoh],width=2.0)
+				#Line(bezier=[xv,yv,xr+xoh,yr+yoh,cx+xoh,cy+yoh],width=2.0)
 		else:
 			if abs(balance) > 0.1:
 				Line(points=[cx,cy,xv,yv],width=2.0)
@@ -403,10 +405,6 @@ class LAngleViewAV(LAngleView):
 			length = self.bckgnd.get_meter_length()
 			center = self.bckgnd.get_meter_center()
 
-			# sowas wär modularer:
-			# p in [-1.0..1.0]
-			# x,y = self.bckgnd.get_meter_position(p)
-
 			x,y = value.xy()
 			x = x*length/45.0 + center[0]
 			y = y*length/45.0 + center[1]
@@ -436,15 +434,15 @@ class LAngleViewBA(LAngleView):
 		self.horizontcolor = [0.0,0.0,1.0,1]
 		self.pitchnrollcolor = [1,1,0,1]
 		self.gradiblau = Gradient.horizontal(
-					[0.0,0.0,1.0,0.2],
-					[0.0,0.0,1.0,0.2],
-					[0.0,0.0,1.0,0.2],
-					[0.0,0.0,0.0,0.2])
+					[0.0,0.0,1.0,0.1],
+					[0.0,0.0,1.0,0.1],
+					[0.0,0.0,1.0,0.1],
+					[0.0,0.0,0.0,0.1])
 		self.gradigelb = Gradient.horizontal(
-					[1.0,1.0,0.0,0.2],
-					[1.0,1.0,0.0,0.2],
-					[1.0,1.0,0.0,0.2],
-					[0.0,0.0,0.0,0.2])
+					[1.0,1.0,0.0,0.1],
+					[1.0,1.0,0.0,0.1],
+					[1.0,1.0,0.0,0.1],
+					[0.0,0.0,0.0,0.1])
 
 	def draw(self,value):
 
@@ -452,52 +450,107 @@ class LAngleViewBA(LAngleView):
 		center = self.bckgnd.get_tacho_center()
 		cx = center[0]
 		cy = center[1]
+		phiR = math.radians(value.phi)
+
+		anf = LFont.small()*1.5
 
 		x = value.rollExt()
 		y = value.pitchExt()
-		x = x*radius/45.0 + center[0]
-		y = y*radius/45.0 + center[1]
+		x = x*radius/45.0 + cx
+		y = y*radius/45.0 + cy
 
-		deckweiss = self.deckweiss
+		weiss = self.deckweiss
 		horizontcolor = self.horizontcolor
 		pitchnrollcolor = self.pitchnrollcolor
-		gradiblau = self.gradiblau
-		gradigelb = self.gradigelb
+		grb = self.gradiblau
+		grg = self.gradigelb
 
-		def xyLine(x,y,width=2.0):
+		def xyLine(x,y,gb,gg,width=2.0):
 			PushMatrix()
 			Translate(x,y)
 			Rotate(angle=value.phi,origin=(0,0))
 			Scale(radius,origin=(0,0))
 			set_color(horizontcolor)
-			Line(points=[0.0,-3.0,0.0,3.0],width=width/max(radius,0.01))
-			#set_color([0.0,0.0,1.0,0.2])
-			#Rectangle(pos=(0.0,-1.0), size=(0.7,2.0))
-			set_color(deckweiss)
-			Rectangle(texture=gradiblau,pos=(0.0,-1.0), size=(1.0,2.0))
+			if width>0.0:
+				Line(points=[0.0,-2.0,0.0,2.0],width=width/max(radius,0.01))
+			# Achtung: die Texturfarbe wird mit der aktuellen Farbe gemischt.
+			# Darum Preset auf weiss.
+			set_color(weiss)
+			Rectangle(texture=gb,pos=(0.0,-2.0), size=(4.0,4.0))
 			Rotate(angle=180,origin=(0,0))
-			#set_color([1.0,1.0,0.0,0.2])
-			#Rectangle(pos=(0.0,-1.0), size=(0.7,2.0))
-			set_color(deckweiss)
-			Rectangle(texture=gradigelb,pos=(0.0,-1.0), size=(1.0,2.0))
+			set_color(weiss)
+			Rectangle(texture=gg,pos=(0.0,-2.0), size=(4.0,4.0))
 			PopMatrix()
 
-		# künstl horizont:
-		phiR = math.radians(value.phi)
-		xyLine(x,y)
-		xyLine(x+2*radius*math.cos(phiR),y+2*radius*math.sin(phiR))
-		xyLine(x-2*radius*math.cos(phiR),y-2*radius*math.sin(phiR))
+		# künstl Horizont:
+		if self.val_ori in ['LANDING']:
+			xyLine(x,y,grb,grb,width=0.0)
+		elif self.val_ori in ['BOTTOM','TOP','LEFT','RIGHT']:
+			if value.theta > 0:
+				xyLine(x-2*radius*math.cos(phiR),y-2*radius*math.sin(phiR),grb,grg)
+			else:
+				xyLine(x+2*radius*math.cos(phiR),y+2*radius*math.sin(phiR),grb,grg)
+		else: # FLYING
+			xyLine(x,y,grg,grg,width=0.0)
 
-		# pitch und roll
+		# pitch und roll mit Anschriften
 		set_color(pitchnrollcolor)
 		wid = 1.5
 		Line(points=[x,self.parent.pos[1],x,self.parent.pos[1]+self.parent.size[1]],width=wid)
 		Line(points=[self.parent.pos[0],y,self.parent.pos[0]+self.parent.size[0],y],width=wid)
 		Ellipse(pos=(x-10,y-10),size=(20,20))
 
-		# TBD: Winkel anschriften
+		rotated_text("{0: 5.2f}\u00b0".format(value.roll()),
+			x,self.pos[1],anchor=(-1,1),font_size=anf,color=pitchnrollcolor)
+		rotated_text("{0: 5.2f}\u00b0".format(value.pitch()),
+			self.pos[0],y,anchor=(1,1),font_size=anf,color=pitchnrollcolor)
 
-		#print (self.val_ori)
+		# Ebenenwinkel mit Anschrift
+		set_color(weiss)
+		width = 0.7
+		PushMatrix()
+		Translate(cx,cy)
+		Rotate(angle=value.phi+90,origin=(0,0))
+		Scale(radius,origin=(0,0))
+		Line(points=[0.0,0.27,0.0,1.0],width=width/max(radius,0.01))
+		Line(points=[-2.0,0.0,27.0,0.0],width=width/max(radius,0.01))
+		PopMatrix()
+		tx = cx+0.27*radius*math.cos(phiR+math.pi)
+		ty = cy+0.27*radius*math.sin(phiR+math.pi)
+		rotated_text("{0: 5.2f}\u00b0".format(90-value.theta),
+			tx,ty,angle=value.phi-90,anchor=(-1,0),font_size=anf,color=weiss)
+
+		# Balance
+		set_color(weiss)
+		PushMatrix()
+		Translate(cx,cy)
+		Scale(radius,origin=(0,0))
+		Line(points=[-2.0,0.0,2.0,0.0],width=width/max(radius,0.01))
+		PopMatrix()
+
+		# Winkelanzeige mit Anschriften
+		vx = value.valX
+		if vx == 0.0: vx = 0.0001
+		angleC = math.degrees(math.atan(value.valY/vx))
+		scaleC = 0.12*radius
+		PushMatrix()
+		Translate(cx,cy)
+		Scale(scaleC,origin=(0,0))
+		Line(circle=(0,0,1.1,90,180-angleC),width=width/max(scaleC,0.01))
+		Line(circle=(0,0,1.02,180-angleC,270),width=width/max(scaleC,0.01))
+		PopMatrix()
+
+		angleCR = math.radians((angleC-90)/2.0)
+		tx = cx+0.14*radius*math.cos(angleCR)
+		ty = cy+0.14*radius*math.sin(angleCR)
+		rotated_text("{0: 5.2f}\u00b0".format(90.0-angleC),
+			tx,ty,angle=0,anchor=(1,-1),font_size=anf,color=weiss)
+
+		angleCR = math.radians(180+(angleC+90)/2.0)
+		tx = cx+0.14*radius*math.cos(angleCR)
+		ty = cy+0.14*radius*math.sin(angleCR)
+		rotated_text("{0: 5.2f}\u00b0".format(90.0+angleC),
+			tx,ty,angle=0,anchor=(-1,-1),font_size=anf,color=weiss)
 
 #=============================================================================
 
@@ -556,12 +609,11 @@ class LLayouts(EventDispatcher):
 		self.layouts.append(LLayout(
 			LAngleViewFull,LCircleViewFine,[0.0, 0.4, 0.1, 1]))
 		self.layouts.append(LLayout(
-			#LAngleViewFull,LCircleViewFineWithScale,[0.0, 0.4, 0.1, 1]))
 			LAngleViewFull2,LCircleViewFineWithScale,[0.2, 0.05, 0.3, 1]))
 		self.layouts.append(LLayout(
 			LAngleViewAV,LCircleViewAV,[0.8, 0.1, 0.1, 1]))
 		self.layouts.append(LLayout(
-			LAngleViewBA,LCircleViewBA,[0.15, 0.15, 0.15, 0.5]))
+			LAngleViewBA,LCircleViewBA,[0.0, 0.0, 0.0, 0.0]))
 		self.read()
 
 	def current(self):
@@ -579,20 +631,21 @@ class LLayouts(EventDispatcher):
 
 	def save(self):
 		try:
-			fp = open("ww_layout.json",'w')
+			fp = open(ConfigDir.get()+"/ww_layout.json",'w')
 			json.dump(self.selected,fp)
 		except:
 			pass
 
 	def read(self):
 		try:
-			fp = open("ww_layout.json",'r')
+			fp = open(ConfigDir.get()+"/ww_layout.json",'r')
 			if fp:
 				sel = json.load(fp)
 				if sel>=self.count(): sel = 0
 				if sel<0: sel = 0
 				self.selected = sel
 		except:
+			print ('Configdir: read error in ',ConfigDir.get())
 			pass
 
 Layouts = LLayouts()

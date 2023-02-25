@@ -9,6 +9,8 @@ android/bin/*
 android/tmp/*
 android/*.apk
 *.sublime*
+build
+apk
 mk
 ENV*/*
 ARM*/*

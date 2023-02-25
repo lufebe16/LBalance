@@ -26,29 +26,14 @@ from kivy.uix.scrollview import ScrollView
 from kivy.core.window import Window
 from kivy.properties import StringProperty, ObjectProperty
 
-
 # =============================================================================
 # helpers.
 
+from storage import ConfigDir
 from koords import kart,polar,polarDeg,normAngle,LValue
-
-# =============================================================================
-# graphic helpers
-
 from graphics import rotated_text, triangle, LFont, set_color
-
-#=============================================================================
-
 from calibration import CalaStore
-
-#=============================================================================
-# Definiert den App Hintergrund.
-
 from staticview import LCircleView, StaticViews
-
-#=============================================================================
-# Definiert den App Vordergrund
-
 from dynamicview import LAngleView, DynamicViews, Layouts
 
 # =============================================================================
@@ -146,15 +131,15 @@ class LayoutButton(LabelButton):
 	def on_press(self):
 		#self.source = 'atlas://data/images/defaulttheme/checkbox_on'
 		print ('on_press layout')
-		self.color_save = self.color
-		self.color = [1,0,0,1]
+		#self.color_save = self.color
+		#self.color = [1,0,0,1]
 		Layouts.next()
 		return False
 
 	def on_release(self):
 		#self.source = 'atlas://data/images/defaulttheme/checkbox_off'
 		print ('on_release layout')
-		self.color = self.color_save
+		#self.color = self.color_save
 		return False
 
 #=============================================================================
@@ -376,7 +361,7 @@ class LWorkWindow(BoxLayout):
 		with self.canvas.before:
 			Color(0, 0.00, 0.1, 1)   # schwarz mit blau stich
 			Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
-			Color(0.15, 0.00, 0.3, 0.2)   # schwrz transparent.
+			Color(0.15, 0.00, 0.3, 0.0)   # schwrz transparent.
 			self.rect = Rectangle(pos=self.pos, size=self.size)
 
 		self.bind(pos=self.update)
@@ -455,22 +440,8 @@ class LWorkWindow(BoxLayout):
 		rc = CalaStore.handleCalibration(rv)
 		self.statusLine.update(rc.g,rc.phi,rc.theta,rc.valX,rc.valY,rc.valZ)
 
-		#cal = self.calaStore.isCalibrated(self.ori)
-		#if cal is not None:
-		#    self.label_cal.text = 'corr: '+cal
-		#else:
-		#    self.label_cal.text = ''
-		'''
-		cal = CalaStore.numCalibrated(rc)
-		if cal > 0:
-			self.headerLine.cala.text = 'calibrated ({0:}x)'.format(cal)
-		else:
-			self.headerLine.cala.text = 'calibration'
-		'''
-
 		if rc is None: return
 		if self.circle_view is None: return
-		#if self.circle_view.get_tacho_radius() is None: return
 
 		# trigger orientation change with background layouts
 		if self.val_ori != rc.orientation():
@@ -493,12 +464,13 @@ class LWorkWindow(BoxLayout):
 
 			rad = self.circle_view.get_tacho_radius()
 			cent = self.circle_view.get_tacho_center()
-			px = (touch.pos[0] - cent[0]) / rad * 45
-			py = (touch.pos[1] - cent[1])  / rad * 45
-			theta = math.sqrt(px*px+py*py)
-			phi = math.atan2(py,px)
-			x,y,z = kart(9.81,phi,math.radians(theta))
-			self.refresh(x,y,z)
+			if rad>0.0:
+				px = (touch.pos[0] - cent[0]) / rad * 45
+				py = (touch.pos[1] - cent[1])  / rad * 45
+				theta = math.sqrt(px*px+py*py)
+				phi = math.atan2(py,px)
+				x,y,z = kart(9.81,phi,math.radians(theta))
+				self.refresh(x,y,z)
 
 		return False
 
@@ -597,6 +569,7 @@ class LMainWindow(BoxLayout, LBase):
 
 from kivy.cache import Cache
 from kivy.utils import platform
+import json
 
 class LApp(App):
 	def __init__(self, **kw):
@@ -606,6 +579,26 @@ class LApp(App):
 		Cache.register('LAppCache', limit=10)
 		Cache.append('LAppCache', 'mainWindow', self.mainWindow, timeout=0)
 		Cache.append('LAppCache', 'mainApp', self, timeout=0)
+
+		if not platform=='android':
+			Window.bind(size=self.saveSize)
+			self.restoreSize()
+
+	def saveSize(self,*args):
+		try:
+			fp = open(ConfigDir.get()+"/ww_window.json",'w')
+			json.dump(Window.size,fp)
+		except:
+			pass
+
+	def restoreSize(self):
+		try:
+			fp = open(ConfigDir.get()+"/ww_window.json",'r')
+			if (fp):
+				size = json.load(fp)
+				Window.size = size
+		except:
+			pass
 
 	def _stop_loading_screen(self,dt):
 		if platform=='android':

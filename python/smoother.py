@@ -24,7 +24,7 @@ class Smoother(object):
 		if self.lastTime is not None:
 			self.lastDelta = curTime-self.lastTime
 			self.beta = math.pow(0.5,self.lastDelta/self.half)
-			print('last',self.lastTime,'cur',curTime,'delta',self.lastDelta,'beta',self.beta)
+			#print('last',self.lastTime,'cur',curTime,'delta',self.lastDelta,'beta',self.beta)
 		self.lastTime = curTime
 
 	def norm(self, value):

@@ -30,7 +30,7 @@ source.exclude_dirs = bin, __pycache__, xml, research
 source.exclude_patterns = ENV*, ANV*, ww*.json
 
 # (str) Application versioning (method 1)
-version = 0.1
+version = 0.5
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]
@@ -158,7 +158,7 @@ android.extra_manifest_xml = ./xml/feature.xml
 # (str) Extra xml to write directly inside the <manifest><application> tag of AndroidManifest.xml
 # use that parameter to provide a filename from where to load your custom XML arguments:
 #android.extra_manifest_application_arguments = ./src/android/extra_manifest_application_arguments.xml
-# android.extra_manifest_application_arguments = ./xml/screen.xml
+#android.extra_manifest_application_arguments = ./xml/screen.xml
 
 # (str) Full name including package path of the Java class that implements Python Service
 # use that parameter to set custom Java class which extends PythonService
