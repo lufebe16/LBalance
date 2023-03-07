@@ -1,0 +1,7 @@
+LBalance is a Clinometer or Balance app written in Python.
+
+The Project displays angles with respect to the orientation of your device.
+It offers a number of switchable graphic layouts and offers a calibration.
+The app is a really useless addition to the collection of apps as
+hundreds of similar apps exists out in the world, but maybe you find it
+nice.

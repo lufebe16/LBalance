@@ -4,8 +4,11 @@ from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from kivy.properties import StringProperty
 from kivy.graphics import *
+from kivy.graphics.texture import Texture
 
-from graphics import rotated_text, LFont, set_color
+from graphics import \
+	rotated_text, LFont, set_color, color_range_ext, rectangle
+
 
 #=============================================================================
 # Definiert den App Hintergrund.
@@ -65,6 +68,10 @@ class LCircleView(Widget):
 	def get_meter_length(self):
 		# TBI in derived class if needed
 		return self.get_tacho_radius()
+
+	def get_meter_aspect(self):
+		# TBI in derived class if needed
+		return 1.0
 
 	def get_meter_angle(self):
 		# TBI in derived class if needed
@@ -280,8 +287,13 @@ class LCircleViewAV(LCircleView):
 		c = self.center
 		r = self.radius
 
-		white = [0.92,0.92,0.92,1]
-		yellow = [1.0,0.92,0.0,1]
+		#white = [0.85, 0.85, 0.85, 1]
+		#white = [0.85, 0.85, 0.3, 1]
+		white = [0.65, 0.65, 0.65, 1]
+		#yellow = [1.0,0.92,0.0,1]
+		#yellow = [0.0, 0.7, 0.3, 1]
+		yellow = [0.85, 0.85, 0.85, 1]
+		black = [0.0, 0.1, 0.0, 1]   # black
 		colorc = white
 		color1 = white
 		color2 = white
@@ -296,7 +308,8 @@ class LCircleViewAV(LCircleView):
 		Rectangle(pos=self.pos, size=self.size)
 
 		# RandLinie
-		set_color([1.0, 1, 1.0, 1])   # violett
+		set_color(white)   # weiss
+		#set_color(yellow)   # red
 		m = self.msiz/2.0
 		t = 2.0
 		Line(points=(
@@ -396,6 +409,130 @@ class LCircleViewBA(LCircleView):
 		#return self.radius/3
 		#return self.radius
 		return self.radius*3.0
+
+#=============================================================================
+
+class LCircleViewMini(LCircleView):
+
+	def __init__(self,**kw):
+		super(LCircleViewMini, self).__init__(**kw)
+
+	def draw(self):
+		set_color([0.5, 0.5, 0.5, 1])   # grey
+		Rectangle(pos=self.pos, size=self.size)
+
+	def get_tacho_center(self):
+		return self.center
+
+	def get_tacho_radius(self):
+		return self.radius
+
+#=============================================================================
+
+import math
+
+from gradient import Gradient
+
+class LCircleViewBubble(LCircleView):
+
+	def __init__(self,**kw):
+		super(LCircleViewBubble, self).__init__(**kw)
+
+		# aus bubble:
+		llr = [ 0xed/255.0, 0xdf/255.0, 0.0, 1.0]
+		lld = [ 0xb1/255.0, 0xc8/255.0, 0.0, 1.0]
+		bkg = [ 0x88/255.0, 0x88/255.0, 0x88/255.0, 1.0 ]
+		self.bubblebkg = bkg
+
+		self.bubblegreen = bg = lld
+		self.bubbleyellow = by = llr
+		self.circle_tex = Gradient.centered(by,bg,bg,bg,bg)
+		self.bar_tex = Gradient.vertical(bg,bg,by,bg)
+		self.aspect = 0.18
+
+	def draw(self):
+
+		bkg = self.bubblebkg
+		set_color(bkg)   # grey
+		Rectangle(pos=self.pos, size=self.size)
+
+		c = self.get_tacho_center()
+		r = self.get_meter_length()/2.0
+		b = [0.0,0.0,0.0,1.0]
+		t = self.circle_tex
+
+		def hourglass(lwidth=1.0):
+			set_color([1,1,1,1])
+			Ellipse(pos=(-1,-1),size=(2,2),texture=t)
+			set_color(b)
+			Line(circle=(0,0,1),width=lwidth)
+
+		def bubblebar(lwidth=1.0):
+
+			def bar():
+				set_color([1,1,1,1])
+				Rectangle(pos=(-1,-1*asp),size=(2,2*asp),texture=self.bar_tex)
+				set_color(b)
+				rectangle(pos=(-1,-1*asp),size=(2,2*asp),width=lwidth)
+				Line(points=(1,-1*asp,1,1*asp),width=lwidth*4)
+				Line(points=(-1,-1*asp,-1,1*asp),width=lwidth*4)
+
+			asp = self.aspect
+			if self.val_ori in ['BOTTOM']:
+				bar()
+			elif self.val_ori in ['TOP']:
+				PushMatrix()
+				Rotate(angle=180.0,origin=(0,0))
+				bar()
+				PopMatrix()
+			elif self.val_ori in ['LEFT']:
+				PushMatrix()
+				Rotate(angle=-90.0,origin=(0,0))
+				bar()
+				PopMatrix()
+			else:
+				PushMatrix()
+				Rotate(angle=90.0,origin=(0,0))
+				bar()
+				PopMatrix()
+
+		if self.val_ori in ['LANDING','FLYING']:
+			# curcle.
+			PushMatrix()
+			Translate(c[0],c[1])
+			Scale(r,origin=(0,0))
+			hourglass(lwidth=5.0/r)
+			PopMatrix()
+		else:
+			PushMatrix()
+			Translate(c[0],c[1])
+			Scale(r,origin=(0,0))
+			bubblebar(lwidth=1.0/r)
+			PopMatrix()
+
+	def on_val_ori(self,*args):
+		self.update()
+		self.last_val_ori = self.val_ori
+
+	def get_tacho_center(self):
+		return self.center
+
+	def get_tacho_radius(self):
+		return self.radius*0.9
+
+	def get_meter_center(self):
+		return self.get_tacho_center()
+
+	def get_meter_length(self):
+		if self.val_ori in ['TOP','BOTTOM']:
+			return self.size[0]*0.9
+		elif self.val_ori in ['LEFT','RIGHT']:
+			return self.size[1]*0.9
+		else:
+			return 2.0*self.get_tacho_radius()
+
+	def get_meter_aspect(self):
+		return self.aspect
 
 #=============================================================================
 

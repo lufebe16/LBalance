@@ -10,8 +10,8 @@ try:
 except ImportError:
   activity = None
 
-import time
-from kivy.clock import mainthread
+#import time
+#from kivy.clock import mainthread
 
 SensorReader = None
 #SensorResult = None

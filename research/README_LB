@@ -1,0 +1,42 @@
+
+Language:
+
+1)
+in jedem modul mit übersetzbaren Texten weit oben folgenden code:
+
+import gettext
+t = gettext.translation('base', 'locales')
+_ = t.gettext
+
+Uebersetztbare Texte überall im code mit _( ...  ) einklammern.
+(Ev. eine temporäre definition für _ selbst machen... Später durch
+gettext zu ersetzen, wenn die mo-files fertig sind.)
+
+2)
+- mit xgettext ein template file erzeugen
+- alle sourcefiles angeben welche übersetztbare texte haben.
+- 'base' ist hier ein frei wählbarer name, muss bei aufruf v. gettext
+  (s.o) angegeben werden.
+- ev. neues directory 'locales' erzeugen.
+
+$ xgettext -d base -o locales/base.pot python/LApp.py
+
+3)
+- das potfile nach locales/<language>/LC_MESSAGES/base.po kopieren
+  <language> ist z.B. 'de' oder 'it'.
+- die leeren msgstr darin übersetzen.
+- kompilieren mit msgfmt (für jede sprache).
+
+$ msgfmt -o base.mo base.po
+
+4)
+nur für android:
+- Falls 'LANG' nicht im Environnemt definiert ist das nachholen:
+- Die default Sprache kann aus java.util.locale ausgelesen werden
+  etwa so:
+
+import jnius
+import gettext
+
+Locale = jnius.autoclass('java.util.Locale')
+os.environ['LANG'] = Locale.getDefault().getLanguage()

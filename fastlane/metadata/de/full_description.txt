@@ -1,0 +1,6 @@
+LBalance ist eine Winkelmesser oder Wasserwaage App.
+
+Die App zeigt Winkel zur Horizontalen an. Das Gerät kann so als Wasserwaage
+benutzt werden. Es wurden verschiedene graphische Darstellungen
+implementiert, welche per Knopf umschaltbar sind.
+

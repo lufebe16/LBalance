@@ -40,9 +40,11 @@ class LAngleView(BoxLayout):
 	def update_scheduled(self,*args):
 		self.rect.pos = self.pos
 		self.rect.size = self.size
+
 		#print("LAngleView (pos): ",self.pos)
 		#print("LAngleView (size): ",self.size)
 		#print("LAngleView (center): ",self.center)
+		pass
 
 	def set_background(self,bckgnd):
 		self.clear_widgets()
@@ -361,6 +363,9 @@ class LAngleViewAV(LAngleView):
 
 	def draw(self,value):
 
+		redcolor = [1.0,0.4,0.0,1.0]
+		#redcolor = [0.8,0.0,0.0,1.0]
+		#redcolor = [1,1,0.0,1.0]
 		# Text ausgabe.
 		balance = value.balance()
 		anf = LFont.angle()
@@ -390,7 +395,7 @@ class LAngleViewAV(LAngleView):
 			xv = radius * math.cos(alf) + cx
 			yv = radius * math.sin(alf) + cy
 
-			set_color([0.8,0,0,1])
+			set_color(redcolor)
 			if balance>0.1:
 				Line(points=[xv,yv,cx,cy],width=2.2)
 
@@ -398,7 +403,9 @@ class LAngleViewAV(LAngleView):
 			Translate(x,y)
 			Rotate(angle=value.phi,origin=(0,0))
 			Scale(radius/14.0,origin=(0,0))
-			raute(lcolor=[0.8,0,0,1])
+			#raute(lcolor=redcolor)
+			set_color(redcolor)
+			baloon(triangle=False)
 			PopMatrix()
 
 		else:
@@ -413,9 +420,12 @@ class LAngleViewAV(LAngleView):
 			Translate(x,y)
 			if value.orientation() in ["LEFT","RIGHT"]:
 				Scale(length/7,length/14,1,origin=(0,0))
+				Rotate(angle=90,origin=(0,0))
 			else:
 				Scale(length/14,length/7,1,origin=(0,0))
-			raute(lcolor=[0.8,0,0,1])
+			#raute(lcolor=redcolor)
+			set_color(redcolor)
+			baloon(triangle=False,line=True)
 			PopMatrix()
 
 
@@ -554,6 +564,157 @@ class LAngleViewBA(LAngleView):
 
 #=============================================================================
 
+from kivy.graphics.scissor_instructions import ScissorPush, ScissorPop
+
+class LAngleViewMini(LAngleView):
+	def __init__(self,**kw):
+		super(LAngleViewMini, self).__init__(**kw)
+
+	def draw(self,value):
+		radius = self.bckgnd.get_tacho_radius()
+		center = self.bckgnd.get_tacho_center()
+		cx = center[0]
+		cy = center[1]
+		anf = LFont.angle()*2.7
+
+		collin = [0.7,0.7,0.7,1]
+		coltxt = [0.13,0.13,0.13,1]
+		bal = value.balance()
+
+		ScissorPush(
+			x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
+
+		rotated_text("{0: 4.1f}\u00b0".format(bal),
+			cx,cy,angle=value.phi-90.0,anchor=(0,-1),font_size=anf,color=coltxt)
+
+		wid = 11.0
+		PushMatrix()
+		Translate(cx,cy)
+		Rotate(angle=value.phi+90,origin=(0,0))
+		Scale(radius,origin=(0,0))
+		set_color(collin)
+		Line(points=[0.0,-0.2,0.0,-1.0],width=wid/max(radius,0.01))
+		Line(points=[-2.0,0.0,2.0,0.0],width=wid/max(radius,0.01))
+		PopMatrix()
+
+		ScissorPop()
+
+#=============================================================================
+
+from gradient import Gradient
+
+class LAngleViewBubble(LAngleView):
+	def __init__(self,**kw):
+		super(LAngleViewBubble, self).__init__(**kw)
+
+		llr = [ 0xed/255.0, 0xdf/255.0, 0.0, 1.0]
+		lld = [ 0xb1/255.0, 0xc8/255.0, 0.0, 0.8]
+		whtd = [1.0,1.0,1.0,1.0]
+		whtt = [1.0,1.0,1.0,0.0]
+		lld2 = [ 0xd9/255.0, 0xe8/255.0, 0.8, 0.7]
+		self.tex_bubble = Gradient.centered(whtd,lld2,lld)
+
+	def bubble(self,x,y,radius,scale,start=0,end=360):
+		PushMatrix()
+		Translate(x,y)
+		Scale(radius*scale,origin=(0,0))
+		set_color([1,1,1,1])
+		Ellipse(pos=(-1,-1),size=(2,2),texture=self.tex_bubble,
+									angle_start=start,angle_end=end)
+		PopMatrix()
+
+	def grid(self,x,y,radius,scale,lwidth=1.0):
+		PushMatrix()
+		Translate(x,y)
+		Scale(radius,origin=(0,0))
+		set_color([0,0,0,1])
+		Line(circle=(0,0,scale),width=lwidth)
+
+		Line(points=(scale,0,1,0),width=lwidth/3.0)
+		Line(points=(-scale,0,-1,0),width=lwidth/3.0)
+		Line(points=(0,scale,0,1),width=lwidth/3.0)
+		Line(points=(0,-scale,0,-1),width=lwidth/3.0)
+		PopMatrix()
+
+	def frame(self,x,y,radius,scale,lwidth=1.0,turn=False):
+		PushMatrix()
+		Translate(x,y)
+		if turn:
+			Rotate(angle=90,origin=(0,0))
+		Scale(radius,origin=(0,0))
+		set_color([0,0,0,1])
+		Line(points=(scale,scale,scale,-scale),width=lwidth/3.0)
+		Line(points=(-scale,scale,-scale,-scale),width=lwidth/3.0)
+		PopMatrix()
+
+	def draw(self,value):
+		radius = self.bckgnd.get_meter_length()/2.0
+		center = self.bckgnd.get_tacho_center()
+		scale = self.bckgnd.get_meter_aspect()
+		cx = center[0]
+		cy = center[1]
+		anf = LFont.angle()*2.7
+
+		t = self.tex_bubble
+
+		collin = [0.7,0.7,0.7,1]
+		coltxt = [0.13,0.13,0.13,1]
+		bal = value.balance()
+		bal = bal*radius/45.0
+
+		#x = value.rollExt()
+		#y = value.pitchExt()
+		x,y = value.xy()
+		x = x*radius/45.0 + cx
+		y = y*radius/45.0 + cy
+
+		if self.val_ori in ['LANDING','FLYING']:
+			bx = cx + (x-cx)*(1.0-scale)
+			by = cy + (y-cy)*(1.0-scale)
+			self.bubble(bx,by,radius,scale)
+			self.grid(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01))
+		elif self.val_ori in ['BOTTOM']:
+			bx = cx + (x-cx)*(1.0-scale)
+			by = cy + scale*radius
+			self.bubble(bx,by,radius,scale,start=90,end=270)
+			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01))
+		elif self.val_ori in ['TOP']:
+			bx = cx + (x-cx)*(1.0-scale)
+			by = cy - scale*radius
+			self.bubble(bx,by,radius,scale,start=270,end=450)
+			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01))
+		elif self.val_ori in ['LEFT']:
+			bx = cx + scale*radius
+			by = cy + (y-cy)*(1.0-scale)
+			self.bubble(bx,by,radius,scale,start=180,end=360)
+			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01),turn=True)
+		elif self.val_ori in ['RIGHT']:
+			bx = cx - scale*radius
+			by = cy + (y-cy)*(1.0-scale)
+			self.bubble(bx,by,radius,scale,start=0,end=180)
+			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01),turn=True)
+		return
+
+		ScissorPush(
+			x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
+
+		rotated_text("{0: 4.1f}\u00b0".format(bal),
+			cx,cy,angle=value.phi-90.0,anchor=(0,-1),font_size=anf,color=coltxt)
+
+		wid = 11.0
+		PushMatrix()
+		Translate(cx,cy)
+		Rotate(angle=value.phi+90,origin=(0,0))
+		Scale(radius,origin=(0,0))
+		set_color(collin)
+		Line(points=[0.0,-0.2,0.0,-1.0],width=wid/max(radius,0.01))
+		Line(points=[-2.0,0.0,2.0,0.0],width=wid/max(radius,0.01))
+		PopMatrix()
+
+		ScissorPop()
+
+#=============================================================================
+
 class DynamicViews(object):
 
 	def __init__(self):
@@ -570,84 +731,5 @@ class DynamicViews(object):
 	def view(self,index):
 		# neue Instanz erzeugen und zurückgeben.
 		return self.views[index]()
-
-#=============================================================================
-
-from staticview \
-	import LCircleViewSimple,LCircleViewFine, \
-		LCircleViewFineWithScale,LCircleViewAV, \
-		LCircleViewBA
-
-import json
-
-class LLayout(object):
-	def __init__(self, dv, bg, sc):
-		self.layout = {
-			"foreground": dv,
-			"background": bg,
-			"statuscolor": sc
-			}
-
-	def background(self):
-		return self.layout["background"]()
-
-	def foreground(self):
-		return self.layout["foreground"]()
-
-	def statuscolor(self):
-		return self.layout["statuscolor"]
-
-
-class LLayouts(EventDispatcher):
-	selected = NumericProperty(0)
-
-	def __init__(self,**kw):
-		super(LLayouts,self).__init__(**kw)
-		self.layouts = []
-		self.layouts.append(LLayout(
-			LAngleViewCurved,LCircleViewSimple,[0.7, 0.1, 0.1, 1]))
-		self.layouts.append(LLayout(
-			LAngleViewFull,LCircleViewFine,[0.0, 0.4, 0.1, 1]))
-		self.layouts.append(LLayout(
-			LAngleViewFull2,LCircleViewFineWithScale,[0.2, 0.05, 0.3, 1]))
-		self.layouts.append(LLayout(
-			LAngleViewAV,LCircleViewAV,[0.8, 0.1, 0.1, 1]))
-		self.layouts.append(LLayout(
-			LAngleViewBA,LCircleViewBA,[0.0, 0.0, 0.0, 0.0]))
-		self.read()
-
-	def current(self):
-		return self.layouts[self.selected]
-
-	def next(self):
-		self.selected = (self.selected+1) % len(self.layouts)
-		self.save()
-
-	def count(self):
-		return len(self.layouts)
-
-	def layout(self,index):
-		return self.layouts[index]
-
-	def save(self):
-		try:
-			fp = open(ConfigDir.get()+"/ww_layout.json",'w')
-			json.dump(self.selected,fp)
-		except:
-			pass
-
-	def read(self):
-		try:
-			fp = open(ConfigDir.get()+"/ww_layout.json",'r')
-			if fp:
-				sel = json.load(fp)
-				if sel>=self.count(): sel = 0
-				if sel<0: sel = 0
-				self.selected = sel
-		except:
-			print ('Configdir: read error in ',ConfigDir.get())
-			pass
-
-Layouts = LLayouts()
 
 #=============================================================================

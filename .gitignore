@@ -21,3 +21,4 @@ spick*.*
 temp/*
 test/*
 ww*.json
+*.sh

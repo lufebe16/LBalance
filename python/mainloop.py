@@ -4,11 +4,23 @@
 import os
 import logging
 import time
+import sensors
+
+#=============================================================================
+# Sprache konfigurieren.
+
+import gettext
+
+if 'LANG' not in os.environ:
+	if sensors.jnius is not None:  # android
+		Locale = sensors.jnius.autoclass('java.util.Locale')
+		os.environ['LANG'] = Locale.getDefault().getLanguage()
+
+#=============================================================================
 
 from kivy.clock import Clock
 
 from LApp import LApp, LWorkWindow, LCircleView
-import sensors
 import smoother
 
 #=============================================================================

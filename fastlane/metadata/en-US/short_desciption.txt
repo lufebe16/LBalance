@@ -1,0 +1,1 @@
+LBalance is another clinometer,balance or bubble App. Measures angles.

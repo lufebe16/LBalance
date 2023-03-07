@@ -23,17 +23,43 @@ def rotated_text(text,x,y,angle=0,font_size=16,anchor=(0,0),color=[1,1,1,1]):
 	PopMatrix()
 	l.text = ""
 
+def rectangle(pos=(-1.0,-1.0),size=(2.0,2.0),width=1.0):
+	w = size[0]
+	h = size[1]
+	p = pos
+	Line(points=(
+		p[0],p[1],
+		p[0]+w,p[1],
+		p[0]+w,p[1]+h,
+		p[0],p[1]+h,
+		p[0],p[1]),
+		width=width)
+
 def set_color(color=[0,0,0,0]):
 	Color(color[0],color[1],color[2],color[3])
 
-def set_color_range(cfrom=[0,0,0,0],cto=[1,1,1,1],param=0.5):
-	if param<0.0: color = cfrom
-	elif param > 1.0: color = cto
+def color_range(cfrom=[0,0,0,0],cto=[1,1,1,1],param=0.5):
+	if param<0.0: return cfrom
+	elif param > 1.0: return cto
 	else:
-		color = [ (cfrom[i]+param*(cto[i]-cfrom[i])) for i in range(0,4) ]
-	Color(color[0],color[1],color[2],color[3])
+		return [ (cfrom[i]+param*(cto[i]-cfrom[i])) for i in range(0,4) ]
 
-def baloon(lcolor=[0.1,0.1,0.1,1],lwidth=1.0,lscale=0.9,triangle=True):
+def color_range_ext(*args,param=0.5):
+	s = len(args)
+	if param<0.0: return args[0]
+	elif param >= 1.0: return args[s-1]
+	else:
+		s = s-1
+		ps = param*s
+		i = math.floor(ps)
+		p = ps - i
+		if i < s:
+			return color_range(args[i],args[i+1],p)
+
+def set_color_range(cfrom=[0,0,0,0],cto=[1,1,1,1],param=0.5):
+	set_color(color_range(cfrom,cto,param))
+
+def baloon(lcolor=[0.1,0.1,0.1,1],lwidth=1.0,lscale=0.9,triangle=True,line=False):
 	Ellipse(pos=(-1,-1),size=(2,2))
 	PushMatrix()
 	set_color(lcolor)
@@ -45,6 +71,8 @@ def baloon(lcolor=[0.1,0.1,0.1,1],lwidth=1.0,lscale=0.9,triangle=True):
 		Line(points=[1.0,0.0,-0.5,ex],width=lwidth)
 		Line(points=[-0.5,-ex,-0.5,ex],width=lwidth)
 		Line(points=[1.0,0.0,-1.0,0.0],width=lwidth)
+	if line:
+		Line(points=[0.0,-1.5,0.0,1.5],width=lwidth)
 	PopMatrix()
 
 def triangle(lcolor=[1,1,1,0.1]):
@@ -61,6 +89,7 @@ def raute(lcolor=[1,1,1,0.1]):
 	Mesh(vertices=vertices, indices=indices).mode = 'triangle_fan'
 
 # =============================================================================
+# fonts.
 
 class LFontSizer(EventDispatcher):
 	scdim = NumericProperty(480)
@@ -73,7 +102,7 @@ class LFontSizer(EventDispatcher):
 		self.scdim = dim
 
 	def small(self):
-		return self.scdim // 30
+		return self.scdim // 25
 
 	def middle(self):
 		return self.scdim // 15

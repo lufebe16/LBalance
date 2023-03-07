@@ -27,6 +27,13 @@ from kivy.core.window import Window
 from kivy.properties import StringProperty, ObjectProperty
 
 # =============================================================================
+# übersetzung.
+
+import gettext
+t = gettext.translation('base', 'locales')
+_ = t.gettext
+
+# =============================================================================
 # helpers.
 
 from storage import ConfigDir
@@ -34,7 +41,8 @@ from koords import kart,polar,polarDeg,normAngle,LValue
 from graphics import rotated_text, triangle, LFont, set_color
 from calibration import CalaStore
 from staticview import LCircleView, StaticViews
-from dynamicview import LAngleView, DynamicViews, Layouts
+from dynamicview import LAngleView, DynamicViews
+from layouts import Layouts
 
 # =============================================================================
 # kivy EventDispatcher passes keywords, that to not correspond to properties
@@ -94,9 +102,9 @@ class CalaButton(LabelButton):
 		if isinstance(val,LValue):
 			cal = CalaStore.numCalibrated(val)
 			if cal>0:
-				self.text = 'calibrated ({0:}x)'.format(cal)
+				self.text = _('Calibrated ({0:}x)').format(cal)
 			else:
-				self.text = 'calibration'
+				self.text = _('Calibration')
 
 	def on_press(self):
 		print ('on_press cala')
@@ -215,8 +223,8 @@ class LHeaderLine(BoxLayout,LBase):
 		self.bind(size=self.update_rect)
 
 		self.title = LabelButton(text="LBalance")
-		self.cala = CalaButton(text="calibrate",halign="center")
-		self.layout = LayoutButton(text="Layout")
+		self.cala = CalaButton(text=_("Calibrate"),halign="center")
+		self.layout = LayoutButton(text=_("Layout"))
 
 		LFont.bind_widget(self.title, LFont.small)
 		LFont.bind_widget(self.cala, LFont.small)
@@ -449,6 +457,19 @@ class LWorkWindow(BoxLayout):
 			self.circle_view.val_ori = self.val_ori
 
 		#self.circle_view.val_ori = rc.orientation()
+
+		ori = rc.orientation()
+		if ori in ['LANDING','FLYING']:
+			self.headerLine.title.text = _('Flat')
+		elif ori in ['TOP']:
+			self.headerLine.title.text = _('Down')
+		elif ori in ['BOTTOM']:
+			self.headerLine.title.text = _('Up')
+		elif ori in ['LEFT']:
+			self.headerLine.title.text = _('Left')
+		elif ori in ['RIGHT']:
+			self.headerLine.title.text = _('Right')
+
 
 		self.angle_view.present(rc)
 
