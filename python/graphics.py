@@ -2,6 +2,7 @@
 
 import math
 
+from kivy.core.text import LabelBase
 from kivy.uix.label import Label
 from kivy.graphics import *
 from kivy.properties import NumericProperty
@@ -10,15 +11,25 @@ from kivy.event import EventDispatcher
 # =============================================================================
 # graphic helpers
 
-def rotated_text(text,x,y,angle=0,font_size=16,anchor=(0,0),color=[1,1,1,1]):
+def rotated_text(text="<empty>",pos=(0,0),angle=0,font_size=16,font_name="",anchor=(0,0),color=[1,1,1,1],bgnd=False,bcolor=[0,0,0,1]):
+	x = pos[0]
+	y = pos[1]
 	l = Label(text=text,font_size=font_size,pos=(-100,-100))
 	l.color = color
+	if font_name:
+		l.font_name = font_name
+	#print ("fontsdir",LabelBase.get_system_fonts_dir())
 	l.texture_update()
+	#print("FontName ********* ",l.font_name)
 	t = l.texture
 	xo = t.size[0] * (anchor[0]-1) / 2.0
 	yo = t.size[1] * (anchor[1]-1) / 2.0
 	PushMatrix()
 	Rotate(angle=angle,origin=(x,y))
+	if bgnd:
+		set_color(bcolor)
+		Rectangle(pos=(x+xo,y+yo),size=t.size)
+		set_color([1,1,1,1])
 	Rectangle(texture=t,pos=(x+xo,y+yo),size=t.size)
 	PopMatrix()
 	l.text = ""

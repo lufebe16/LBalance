@@ -197,15 +197,15 @@ class LCircleViewFineWithScale(LCircleView):
 		for i in range(-45,46,1):
 			if i % 10 == 0:
 				if angle is not None:
-					rotated_text(str(i*axis_dir),c[0]-r,c[1]+i*step,font_size=fs,angle=angle)
-					rotated_text(str(i*axis_dir),c[0]+r,c[1]+i*step,font_size=fs,angle=angle)
-					rotated_text(str(i*axis_dir),c[0]+i*step,c[1]-r,font_size=fs,angle=angle)
-					rotated_text(str(i*axis_dir),c[0]+i*step,c[1]+r,font_size=fs,angle=angle)
+					rotated_text(str(i*axis_dir),pos=(c[0]-r,c[1]+i*step),font_size=fs,angle=angle)
+					rotated_text(str(i*axis_dir),pos=(c[0]+r,c[1]+i*step),font_size=fs,angle=angle)
+					rotated_text(str(i*axis_dir),pos=(c[0]+i*step,c[1]-r),font_size=fs,angle=angle)
+					rotated_text(str(i*axis_dir),pos=(c[0]+i*step,c[1]+r),font_size=fs,angle=angle)
 				else:
-					rotated_text(str(i*axis_dir),c[0]-r,c[1]+i*step,font_size=fs,angle=90)
-					rotated_text(str(i*axis_dir),c[0]+r,c[1]+i*step,font_size=fs,angle=-90)
-					rotated_text(str(i*axis_dir),c[0]+i*step,c[1]-r,font_size=fs,angle=180)
-					rotated_text(str(i*axis_dir),c[0]+i*step,c[1]+r,font_size=fs,angle=0)
+					rotated_text(str(i*axis_dir),pos=(c[0]-r,c[1]+i*step),font_size=fs,angle=90)
+					rotated_text(str(i*axis_dir),pos=(c[0]+r,c[1]+i*step),font_size=fs,angle=-90)
+					rotated_text(str(i*axis_dir),pos=(c[0]+i*step,c[1]-r),font_size=fs,angle=180)
+					rotated_text(str(i*axis_dir),pos=(c[0]+i*step,c[1]+r),font_size=fs,angle=0)
 
 #=============================================================================
 
@@ -287,12 +287,12 @@ class LCircleViewAV(LCircleView):
 		c = self.center
 		r = self.radius
 
-		#white = [0.85, 0.85, 0.85, 1]
+		white = [0.85, 0.85, 0.85, 1]
 		#white = [0.85, 0.85, 0.3, 1]
-		white = [0.65, 0.65, 0.65, 1]
-		#yellow = [1.0,0.92,0.0,1]
+		#white = [0.65, 0.65, 0.65, 1]
+		yellow = [1.0,0.92,0.0,1]
 		#yellow = [0.0, 0.7, 0.3, 1]
-		yellow = [0.85, 0.85, 0.85, 1]
+		#yellow = [0.85, 0.85, 0.85, 1]
 		black = [0.0, 0.1, 0.0, 1]   # black
 		colorc = white
 		color1 = white
@@ -533,24 +533,5 @@ class LCircleViewBubble(LCircleView):
 
 	def get_meter_aspect(self):
 		return self.aspect
-
-#=============================================================================
-
-class StaticViews(object):
-
-	def __init__(self):
-		# Liste der verfügbaren Klassen.
-		self.views = []
-		self.views.append(LCircleViewSimple)
-		self.views.append(LCircleViewFine)
-		self.views.append(LCircleViewFineWithScale)
-		self.views.append(LCircleViewAV)
-
-	def count(self):
-		return len(self.views)
-
-	def view(self,index):
-		# neue Instanz erzeugen und zurückgeben.
-		return self.views[index]()
 
 #=============================================================================

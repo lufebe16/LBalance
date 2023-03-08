@@ -13,7 +13,7 @@ package.domain = org.lufebe16.level
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,po,mo
+source.include_exts = py,png,jpg,kv,atlas,po,mo,ttf
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
@@ -22,12 +22,12 @@ source.include_exts = py,png,jpg,kv,atlas,po,mo
 #source.exclude_exts = spec, req.txt
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin, __pycache__, xml, research
+source.exclude_dirs = bin, __pycache__, xml, research, fastlane
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
 #source.exclude_patterns = license,images/*/*.jpg
-source.exclude_patterns = ENV*, ANV*, ww*.json
+source.exclude_patterns = ENV*, ANV*, ww*.json, README.*
 
 # (str) Application versioning (method 1)
 version = 1.0

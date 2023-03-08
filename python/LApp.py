@@ -40,8 +40,8 @@ from storage import ConfigDir
 from koords import kart,polar,polarDeg,normAngle,LValue
 from graphics import rotated_text, triangle, LFont, set_color
 from calibration import CalaStore
-from staticview import LCircleView, StaticViews
-from dynamicview import LAngleView, DynamicViews
+from staticview import LCircleView
+from dynamicview import LAngleView
 from layouts import Layouts
 
 # =============================================================================

@@ -50,7 +50,7 @@ class LLayouts(EventDispatcher):
 		self.layouts.append(LLayout(
 			LAngleViewFull2,LCircleViewFineWithScale,[0.2, 0.05, 0.3, 1]))
 		self.layouts.append(LLayout(
-			LAngleViewAV,LCircleViewAV,[0.9, 0.3, 0.1, 1]))
+			LAngleViewAV,LCircleViewAV,[0.8, 0.0, 0.0, 1.0]))
 		#self.layouts.append(LLayout(
 		#	LAngleViewAV,LCircleViewAV,[0.0, 0.55, 0.15, 1]))
 		self.layouts.append(LLayout(

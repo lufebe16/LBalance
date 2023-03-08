@@ -86,7 +86,7 @@ class LAngleView(BoxLayout):
 			lby = self.size[1]/2.0
 			lbx = self.size[0]/12
 		rotated_text("{0: 5.2f}\u00b0".format(balance),
-				lbx,lby,txtangle,font_size=anf,color=color,anchor=anchor)
+				pos=(lbx,lby),angle=txtangle,font_size=anf,color=color,anchor=anchor)
 
 #=============================================================================
 
@@ -167,7 +167,7 @@ class LAngleViewTriangle(LAngleView):
 
 		anf = LFont.angle()
 		txt = "{0: 5.2f}\u00b0".format(value.balance())
-		rotated_text(txt,cx,cy,value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
+		rotated_text(txt,pos=(cx,cy),angle=value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
 
 		good = 5.0
 		set_color_range(
@@ -229,7 +229,7 @@ class LAngleViewCurved(LAngleView):
 
 		anf = LFont.angle()
 		txt = "{0: 5.2f}\u00b0".format(value.balance())
-		rotated_text(txt,cx,cy,value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
+		rotated_text(txt,pos=(cx,cy),angle=value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
 
 		good = 5.0
 		set_color_range(
@@ -291,21 +291,21 @@ class LAngleViewFull(LAngleView):
 			Line(points=[x,cy-radius,x,cy+radius],width=1.0)
 			txt = "{0: 5.2f}\u00b0".format(val)
 			if x<cx:
-				rotated_text(txt+rar,x,cy-radius,180,anchor=(-1.1,-1.8),font_size=smf)
-				rotated_text(lar+txt,x,cy+radius,0,anchor=(1.1,-1.8),font_size=smf)
+				rotated_text(txt+rar,pos=(x,cy-radius),angle=180,anchor=(-1.1,-1.8),font_size=smf)
+				rotated_text(lar+txt,pos=(x,cy+radius),angle=0,anchor=(1.1,-1.8),font_size=smf)
 			else:
-				rotated_text(lar+txt,x,cy-radius,180,anchor=(1.1,-1.8),font_size=smf)
-				rotated_text(txt+rar,x,cy+radius,0,anchor=(-1.1,-1.8),font_size=smf)
+				rotated_text(lar+txt,pos=(x,cy-radius),angle=180,anchor=(1.1,-1.8),font_size=smf)
+				rotated_text(txt+rar,pos=(x,cy+radius),angle=0,anchor=(-1.1,-1.8),font_size=smf)
 
 		def anzeige_y(val):
 			Line(points=[cx-radius,y,cx+radius,y],width=1.0)
 			txt = "{0: 5.2f}\u00b0".format(val)
 			if y<cy:
-				rotated_text(lar+txt,cx-radius,y,90,anchor=(1.1,-1.8),font_size=smf)
-				rotated_text(txt+rar,cx+radius,y,-90,anchor=(-1.1,-1.8),font_size=smf)
+				rotated_text(lar+txt,pos=(cx-radius,y),angle=90,anchor=(1.1,-1.8),font_size=smf)
+				rotated_text(txt+rar,pos=(cx+radius,y),angle=-90,anchor=(-1.1,-1.8),font_size=smf)
 			else:
-				rotated_text(txt+rar,cx-radius,y,90,anchor=(-1.1,-1.8),font_size=smf)
-				rotated_text(lar+txt,cx+radius,y,-90,anchor=(1.1,-1.8),font_size=smf)
+				rotated_text(txt+rar,pos=(cx-radius,y),angle=90,anchor=(-1.1,-1.8),font_size=smf)
+				rotated_text(lar+txt,pos=(cx+radius,y),angle=-90,anchor=(1.1,-1.8),font_size=smf)
 
 		# transparenter Drieickspfeil
 		PushMatrix()
@@ -327,7 +327,7 @@ class LAngleViewFull(LAngleView):
 				anzeige_y(value.balance())
 
 		txt = "{0: 5.2f}\u00b0".format(value.balance())
-		rotated_text(txt,cx,cy,value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
+		rotated_text(txt,pos=(cx,cy),angle=value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
 
 		# Kreuzungspunkt der linien
 		set_color([0.7, 0.7, 0.7, 1])   # hellgrau
@@ -360,12 +360,23 @@ class LAngleViewFull2(LAngleViewFull):
 class LAngleViewAV(LAngleView):
 	def __init__(self,**kw):
 		super(LAngleViewAV, self).__init__(**kw)
+		self.pointer_color = [0.8,0.0,0.0,1.0]
+
+	def pointer(self,line=False):
+		original = True
+		if original:
+			raute(lcolor=self.pointer_color)
+		else:
+			set_color(self.pointer_color)
+			baloon(triangle=False,line=line)
+
+	def dirline(self,balance,xv,yv,cx,cy):
+		set_color(self.pointer_color)
+		if balance>0.1:
+			Line(points=[xv,yv,cx,cy],width=2.2)
 
 	def draw(self,value):
 
-		redcolor = [1.0,0.4,0.0,1.0]
-		#redcolor = [0.8,0.0,0.0,1.0]
-		#redcolor = [1,1,0.0,1.0]
 		# Text ausgabe.
 		balance = value.balance()
 		anf = LFont.angle()
@@ -377,7 +388,7 @@ class LAngleViewAV(LAngleView):
 			lbx = self.pos[0]+self.size[0]-(self.size[0]-self.size[1])/2.0
 			ngl = 90
 		rotated_text("{0: 5.2f}\u00b0".format(balance),
-				lbx,lby,ngl,font_size=anf,color=[0.95,0.95,0.95,1],anchor=(0,-1.2))
+				pos=(lbx,lby),angle=ngl,font_size=anf,color=[0.95,0.95,0.95,1],anchor=(0,-1.2))
 
 		# Zeiger Darstellungen.
 		if value.orientation() in ["LANDING","FLYING"]:
@@ -395,17 +406,13 @@ class LAngleViewAV(LAngleView):
 			xv = radius * math.cos(alf) + cx
 			yv = radius * math.sin(alf) + cy
 
-			set_color(redcolor)
-			if balance>0.1:
-				Line(points=[xv,yv,cx,cy],width=2.2)
+			self.dirline(balance,xv,yv,cx,cy)
 
 			PushMatrix()
 			Translate(x,y)
 			Rotate(angle=value.phi,origin=(0,0))
 			Scale(radius/14.0,origin=(0,0))
-			#raute(lcolor=redcolor)
-			set_color(redcolor)
-			baloon(triangle=False)
+			self.pointer()
 			PopMatrix()
 
 		else:
@@ -423,9 +430,7 @@ class LAngleViewAV(LAngleView):
 				Rotate(angle=90,origin=(0,0))
 			else:
 				Scale(length/14,length/7,1,origin=(0,0))
-			#raute(lcolor=redcolor)
-			set_color(redcolor)
-			baloon(triangle=False,line=True)
+			self.pointer(line=True)
 			PopMatrix()
 
 
@@ -511,9 +516,9 @@ class LAngleViewBA(LAngleView):
 		Ellipse(pos=(x-10,y-10),size=(20,20))
 
 		rotated_text("{0: 5.2f}\u00b0".format(value.roll()),
-			x,self.pos[1],anchor=(-1,1),font_size=anf,color=pitchnrollcolor)
+			pos=(x,self.pos[1]),anchor=(-1,1),font_size=anf,color=pitchnrollcolor)
 		rotated_text("{0: 5.2f}\u00b0".format(value.pitch()),
-			self.pos[0],y,anchor=(1,1),font_size=anf,color=pitchnrollcolor)
+			pos=(self.pos[0],y),anchor=(1,1),font_size=anf,color=pitchnrollcolor)
 
 		# Ebenenwinkel mit Anschrift
 		set_color(weiss)
@@ -528,7 +533,7 @@ class LAngleViewBA(LAngleView):
 		tx = cx+0.27*radius*math.cos(phiR+math.pi)
 		ty = cy+0.27*radius*math.sin(phiR+math.pi)
 		rotated_text("{0: 5.2f}\u00b0".format(90-value.theta),
-			tx,ty,angle=value.phi-90,anchor=(-1,0),font_size=anf,color=weiss)
+			pos=(tx,ty),angle=value.phi-90,anchor=(-1,0),font_size=anf,color=weiss)
 
 		# Balance
 		set_color(weiss)
@@ -554,13 +559,13 @@ class LAngleViewBA(LAngleView):
 		tx = cx+0.14*radius*math.cos(angleCR)
 		ty = cy+0.14*radius*math.sin(angleCR)
 		rotated_text("{0: 5.2f}\u00b0".format(90.0-angleC),
-			tx,ty,angle=0,anchor=(1,-1),font_size=anf,color=weiss)
+			pos=(tx,ty),angle=0,anchor=(1,-1),font_size=anf,color=weiss)
 
 		angleCR = math.radians(180+(angleC+90)/2.0)
 		tx = cx+0.14*radius*math.cos(angleCR)
 		ty = cy+0.14*radius*math.sin(angleCR)
 		rotated_text("{0: 5.2f}\u00b0".format(90.0+angleC),
-			tx,ty,angle=0,anchor=(-1,-1),font_size=anf,color=weiss)
+			pos=(tx,ty),angle=0,anchor=(-1,-1),font_size=anf,color=weiss)
 
 #=============================================================================
 
@@ -585,7 +590,7 @@ class LAngleViewMini(LAngleView):
 			x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
 
 		rotated_text("{0: 4.1f}\u00b0".format(bal),
-			cx,cy,angle=value.phi-90.0,anchor=(0,-1),font_size=anf,color=coltxt)
+			pos=(cx,cy),angle=value.phi-90.0,anchor=(0,-1),font_size=anf,color=coltxt)
 
 		wid = 11.0
 		PushMatrix()
@@ -607,13 +612,13 @@ class LAngleViewBubble(LAngleView):
 	def __init__(self,**kw):
 		super(LAngleViewBubble, self).__init__(**kw)
 
-		llr = [ 0xed/255.0, 0xdf/255.0, 0.0, 1.0]
+		# textur für die blase vorbereiten
 		lld = [ 0xb1/255.0, 0xc8/255.0, 0.0, 0.8]
 		whtd = [1.0,1.0,1.0,1.0]
-		whtt = [1.0,1.0,1.0,0.0]
 		lld2 = [ 0xd9/255.0, 0xe8/255.0, 0.8, 0.7]
 		self.tex_bubble = Gradient.centered(whtd,lld2,lld)
 
+	# die Luftblase
 	def bubble(self,x,y,radius,scale,start=0,end=360):
 		PushMatrix()
 		Translate(x,y)
@@ -623,19 +628,20 @@ class LAngleViewBubble(LAngleView):
 									angle_start=start,angle_end=end)
 		PopMatrix()
 
+	# gitter im kreis
 	def grid(self,x,y,radius,scale,lwidth=1.0):
 		PushMatrix()
 		Translate(x,y)
 		Scale(radius,origin=(0,0))
 		set_color([0,0,0,1])
 		Line(circle=(0,0,scale),width=lwidth)
-
 		Line(points=(scale,0,1,0),width=lwidth/3.0)
 		Line(points=(-scale,0,-1,0),width=lwidth/3.0)
 		Line(points=(0,scale,0,1),width=lwidth/3.0)
 		Line(points=(0,-scale,0,-1),width=lwidth/3.0)
 		PopMatrix()
 
+	# gitterstäbe in den balken
 	def frame(self,x,y,radius,scale,lwidth=1.0,turn=False):
 		PushMatrix()
 		Translate(x,y)
@@ -647,6 +653,39 @@ class LAngleViewBubble(LAngleView):
 		Line(points=(-scale,scale,-scale,-scale),width=lwidth/3.0)
 		PopMatrix()
 
+	def textbox(self,value,x,y,angle=0,anchor=(0,0),apos=0,asel=0):
+		grad = "\u00b0"
+		arrow = ["\u25b2","\u25b6","\u25bc","\u25c0"]
+		# Anm: DejaVuSans hat diese Zeichen, Roboto nicht.
+
+		rotated_text(
+			"88888"+grad,
+			pos=(x,y),
+			angle=angle,
+			#font_name = "RobotoMono-Regular.ttf",
+			font_name = "DejaVuSans.ttf",
+			font_size=LFont.middle()*1.3,
+			anchor=anchor,
+			color=[0.1,0.1,0.1,1],
+			bgnd=True,
+			bcolor=[0,0,0,1])
+
+		svalue = "{0:04.1f}".format(math.fabs(value))
+		if value < 0: asel += 2
+		if apos == 0:
+			text = arrow[asel]+svalue+"\u00b0"
+		else:
+			text = svalue+"\u00b0"+arrow[asel]
+		rotated_text(
+			text=text,
+			pos=(x,y),
+			angle=angle,
+			#font_name = "RobotoMono-Regular.ttf",
+			font_name = "DejaVuSans.ttf",
+			font_size=LFont.middle()*1.3,
+			anchor=anchor,
+			color=[0.0,1.0,0.05,1])
+
 	def draw(self,value):
 		radius = self.bckgnd.get_meter_length()/2.0
 		center = self.bckgnd.get_tacho_center()
@@ -655,19 +694,11 @@ class LAngleViewBubble(LAngleView):
 		cy = center[1]
 		anf = LFont.angle()*2.7
 
-		t = self.tex_bubble
-
-		collin = [0.7,0.7,0.7,1]
-		coltxt = [0.13,0.13,0.13,1]
-		bal = value.balance()
-		bal = bal*radius/45.0
-
-		#x = value.rollExt()
-		#y = value.pitchExt()
 		x,y = value.xy()
 		x = x*radius/45.0 + cx
 		y = y*radius/45.0 + cy
 
+		# bubble und grid.
 		if self.val_ori in ['LANDING','FLYING']:
 			bx = cx + (x-cx)*(1.0-scale)
 			by = cy + (y-cy)*(1.0-scale)
@@ -693,43 +724,36 @@ class LAngleViewBubble(LAngleView):
 			by = cy + (y-cy)*(1.0-scale)
 			self.bubble(bx,by,radius,scale,start=0,end=180)
 			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01),turn=True)
-		return
 
-		ScissorPush(
-			x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
-
-		rotated_text("{0: 4.1f}\u00b0".format(bal),
-			cx,cy,angle=value.phi-90.0,anchor=(0,-1),font_size=anf,color=coltxt)
-
-		wid = 11.0
-		PushMatrix()
-		Translate(cx,cy)
-		Rotate(angle=value.phi+90,origin=(0,0))
-		Scale(radius,origin=(0,0))
-		set_color(collin)
-		Line(points=[0.0,-0.2,0.0,-1.0],width=wid/max(radius,0.01))
-		Line(points=[-2.0,0.0,2.0,0.0],width=wid/max(radius,0.01))
-		PopMatrix()
-
-		ScissorPop()
-
-#=============================================================================
-
-class DynamicViews(object):
-
-	def __init__(self):
-		# Liste der verfügbaren Klassen.
-		self.views = []
-		self.views.append(LAngleViewSimple)
-		self.views.append(LAngleViewTriangle)
-		self.views.append(LAngleViewCurved)
-		self.views.append(LAngleViewFull)
-
-	def count(self):
-		return len(self.views)
-
-	def view(self,index):
-		# neue Instanz erzeugen und zurückgeben.
-		return self.views[index]()
+		# anschriften.
+		if self.val_ori in ['LANDING','FLYING']:
+			if self.size[1] > self.size[0]:
+				bxl = self.pos[0] + self.size[0]*.25
+				bxr = self.pos[0] + self.size[0]*.75
+				by = (self.pos[1] + (cy-radius))/2
+				self.textbox(value.roll(), bxl,by,anchor=(0,0),asel=1,apos=0)
+				self.textbox(value.pitch(), bxr,by,anchor=(0,0),asel=0,apos=1)
+			else:
+				byl = self.pos[1] + self.size[1]*.25
+				byr = self.pos[1] + self.size[1]*.75
+				bx = (self.pos[0] + self.size[0] + (cx+radius))/2
+				self.textbox(-value.roll(), bx,byr,anchor=(0,0),asel=0,apos=1,angle=90)
+				self.textbox(value.pitch(), bx,byl,anchor=(0,0),asel=1,apos=0,angle=90)
+		elif self.val_ori in ['BOTTOM']:
+			bx = self.pos[0] + self.size[0]*.5
+			by = (self.pos[1] + (cy-radius*scale))/2
+			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1)
+		elif self.val_ori in ['TOP']:
+			bx = self.pos[0] + self.size[0]*.5
+			by = (self.pos[1] + self.size[1] + (cy+radius*scale))/2
+			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=180)
+		elif self.val_ori in ['LEFT']:
+			by = self.pos[1] + self.size[1]*.5
+			bx = (self.pos[0] + (cx-radius*scale))/2
+			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=-90)
+		elif self.val_ori in ['RIGHT']:
+			by = self.pos[1] + self.size[1]*.5
+			bx = (self.pos[0] + self.size[0] + (cx+radius*scale))/2
+			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=90)
 
 #=============================================================================
