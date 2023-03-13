@@ -66,6 +66,8 @@ def color_range_ext(*args,param=0.5):
 		p = ps - i
 		if i < s:
 			return color_range(args[i],args[i+1],p)
+		else:
+			return args[s]	# (darf eigentlich nicht vorkommen).
 
 def set_color_range(cfrom=[0,0,0,0],cto=[1,1,1,1],param=0.5):
 	set_color(color_range(cfrom,cto,param))

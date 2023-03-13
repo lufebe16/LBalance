@@ -361,9 +361,10 @@ class LAngleViewAV(LAngleView):
 	def __init__(self,**kw):
 		super(LAngleViewAV, self).__init__(**kw)
 		self.pointer_color = [0.8,0.0,0.0,1.0]
+		self.text_color = [0.95,0.95,0.95,1]
 
 	def pointer(self,line=False):
-		original = True
+		original = self.val_ori not in ['LANDING','FLYING']
 		if original:
 			raute(lcolor=self.pointer_color)
 		else:
@@ -388,7 +389,7 @@ class LAngleViewAV(LAngleView):
 			lbx = self.pos[0]+self.size[0]-(self.size[0]-self.size[1])/2.0
 			ngl = 90
 		rotated_text("{0: 5.2f}\u00b0".format(balance),
-				pos=(lbx,lby),angle=ngl,font_size=anf,color=[0.95,0.95,0.95,1],anchor=(0,-1.2))
+				pos=(lbx,lby),angle=ngl,font_size=anf,color=self.text_color,anchor=(0,-1.2))
 
 		# Zeiger Darstellungen.
 		if value.orientation() in ["LANDING","FLYING"]:
@@ -433,6 +434,14 @@ class LAngleViewAV(LAngleView):
 			self.pointer(line=True)
 			PopMatrix()
 
+#=============================================================================
+
+class LAngleViewAValt(LAngleViewAV):
+	def __init__(self,**kw):
+		super(LAngleViewAValt, self).__init__(**kw)
+		#self.pointer_color = [8.0,8.,8.0,1.0]
+		self.pointer_color = [0.0,0.0,0.0,1.0]
+		self.text_color = [0.95,0.95,0.95,1]
 
 #=============================================================================
 

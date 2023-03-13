@@ -216,7 +216,12 @@ class LCircleViewAV(LCircleView):
 		self.d = 0.2
 		self.w = 1.4
 		self.h = 6.1
-		self.n = 8.1
+		self.n = 3*self.d+self.w+self.h
+		#self.n = 8.1
+		self.white = [0.85, 0.85, 0.85, 1]
+		self.yellow = [1.0, 0.92, 0.0, 1]
+		self.black = [0.0, 0.1, 0.0, 1]
+		self.cframe = [0.85, 0.85, 0.85, 1]
 
 	def on_val_ori(self,*args):
 		self.update()
@@ -231,18 +236,19 @@ class LCircleViewAV(LCircleView):
 				Line(points=[i,0,i,1.5],width=0.12)
 
 	def calcSkala(self):
+		o = self.w/2.0/self.h*90.0
 		self.calcLin()
 		PushMatrix()
 		Rotate(angle=180.0,origin=(0,0))
 		self.calcLin()
 		PopMatrix()
 		PushMatrix()
-		Translate(0,10)
+		Translate(0,o)
 		Rotate(angle=180.0,origin=(0,0))
 		self.calcLin()
 		PopMatrix()
 		PushMatrix()
-		Translate(0,-10)
+		Translate(0,-o)
 		self.calcLin()
 		PopMatrix()
 		Line(points=[-45,0,45,0],width=0.12)
@@ -253,33 +259,41 @@ class LCircleViewAV(LCircleView):
 		Line(points=[-50,0,50,0],width=0.12)
 		Line(points=[0,-50,0,50],width=0.12)
 
-	def picture(self,colorc,color1,color2):
+	def areas(self,colorc,color1,color2):
 		d = self.d
 		w = self.w
 		h = self.h
 		set_color(colorc) # gelb
-		Ellipse(pos=(2*d+w,d),size=(6.1,6.1))
+		Ellipse(pos=(2*d+w,d),size=(h,h))
 		set_color(color1)
 		Rectangle(pos=(d,d),size=(w,h))
 		set_color(color2)
 		Rectangle(pos=(2*d+w,2*d+h),size=(h,w))
 
+	def picture(self,colorc,color1,color2):
+
+		self.areas(colorc,color1,color2)
+
+		d = self.d
+		w = self.w
+		h = self.h
+
 		PushMatrix()
 		Translate(2*d+w+h/2,2*d+h+w/2.0)
-		Scale(6.1/90.0,origin=(0,0))
+		Scale(h/90.0,origin=(0,0))
 		self.calcSkala()
 		PopMatrix()
 
 		PushMatrix()
 		Translate(d+w/2,d+h/2.0)
 		Rotate(angle=90.0,origin=(0,0))
-		Scale(6.1/90.0,origin=(0,0))
+		Scale(h/90.0,origin=(0,0))
 		self.calcSkala()
 		PopMatrix()
 
 		PushMatrix()
 		Translate(2*d+w+h/2,d+h/2.0)
-		Scale(6.1/90.0,origin=(0,0))
+		Scale(h/90.0,origin=(0,0))
 		self.calcCircle()
 		PopMatrix()
 
@@ -287,13 +301,9 @@ class LCircleViewAV(LCircleView):
 		c = self.center
 		r = self.radius
 
-		white = [0.85, 0.85, 0.85, 1]
-		#white = [0.85, 0.85, 0.3, 1]
-		#white = [0.65, 0.65, 0.65, 1]
-		yellow = [1.0,0.92,0.0,1]
-		#yellow = [0.0, 0.7, 0.3, 1]
-		#yellow = [0.85, 0.85, 0.85, 1]
-		black = [0.0, 0.1, 0.0, 1]   # black
+		white = self.white
+		yellow = self.yellow
+		black = self.black
 		colorc = white
 		color1 = white
 		color2 = white
@@ -304,12 +314,11 @@ class LCircleViewAV(LCircleView):
 		else:
 			color2 = yellow
 
-		set_color([0.0, 0.1, 0.0, 1])   # black
+		set_color(black)
 		Rectangle(pos=self.pos, size=self.size)
 
 		# RandLinie
-		set_color(white)   # weiss
-		#set_color(yellow)   # red
+		set_color(self.cframe)   # weiss
 		m = self.msiz/2.0
 		t = 2.0
 		Line(points=(
@@ -323,11 +332,11 @@ class LCircleViewAV(LCircleView):
 		PushMatrix()
 		if (self.size[0]<self.size[1]):
 			Translate(0,self.pos[1]+(self.size[1]/2.0-m))
-			Scale(2.0*m/8.1,origin=(0,0))
+			Scale(2.0*m/self.n,origin=(0,0))
 			self.picture(colorc,color2,color1)
 		else:
 			Translate(self.pos[0]+self.size[0]/2.0+m,0)
-			Scale(2.0*m/8.1,origin=(0,0))
+			Scale(2.0*m/self.n,origin=(0,0))
 			Rotate(angle=90.0,origin=(0,0))
 			self.picture(colorc,color1,color2)
 		PopMatrix()
@@ -372,6 +381,61 @@ class LCircleViewAV(LCircleView):
 
 	def get_meter_length(self):
 		return self.get_tacho_radius()
+
+#=============================================================================
+
+class LCircleViewAValt(LCircleViewAV):
+
+	def __init__(self,**kw):
+		super(LCircleViewAValt, self).__init__(**kw)
+
+		self.d = 0.0
+		self.w = 1.2
+		self.h = 6.5
+		self.n = 3*self.d+self.w+self.h
+
+		#self.d = 0.2
+		#self.w = 1.0
+		#self.h = 6.5
+
+		self.white = [0.85, 0.85, 0.85, 1]
+		self.yellow = [1.0, 0.92, 0.0, 1]
+		self.black = [0.0, 0.1, 0.0, 0.0]
+		self.cframe = [0.0, 0.0, 0.0, 0]
+
+		# definition in hsv:
+		gr3 = [0.15, 0.25, 0.99, 1.0]
+		gr1 = [0.5, 0.4, 0.5, 1.0]
+		self.circle_tex = Gradient.centered(gr3,gr1,hsva=True)
+		self.bar_tex_h = Gradient.horizontal(gr1,gr3,gr1,size=16,hsva=True)
+		self.bar_tex_v = Gradient.vertical(gr1,gr3,gr1,size=16,hsva=True)
+
+		# regenbogen
+		# regenbogen
+		s = 1.0
+		w = 0.9
+		#self.circle_tex = Gradient.centered(
+		#	[1.0,s,w,1],[0.0,s,w,1],size=64,hsva=True)
+		#self.bar_tex_h = Gradient.horizontal(
+		#	[1.0,s,w,1],[0.0,s,w,1],size=16,hsva=True,hsft=-0.04)
+		#self.bar_tex_v = Gradient.vertical(
+		#	[1.0,s,w,1],[0.0,s,w,1],size=16,hsva=True,hsft=-0.04)
+
+	def areas(self,colorc,color1,color2):
+		d = self.d
+		w = self.w
+		h = self.h
+		#set_color(colorc) # gelb
+		#Ellipse(pos=(2*d+w,d),size=(6.1,6.1))
+		set_color([1,1,1,1])
+		Ellipse(texture=self.circle_tex,pos=(2*d+w,d),size=(h,h))
+		#set_color(color1)
+		#Rectangle(pos=(d,d),size=(w,h))
+		Rectangle(texture=self.bar_tex_v,pos=(d,d),size=(w,h))
+		#set_color(color2)
+		#Rectangle(pos=(2*d+w,2*d+h),size=(h,w))
+		Rectangle(texture=self.bar_tex_h,pos=(2*d+w,2*d+h),size=(h,w))
+
 
 #=============================================================================
 
@@ -515,7 +579,27 @@ class LCircleViewBubble(LCircleView):
 		self.last_val_ori = self.val_ori
 
 	def get_tacho_center(self):
-		return self.center
+		s = 0.1
+		c = self.center.copy()
+		if self.size[0]>self.size[1]:
+			if self.val_ori in ['LANDING','FLYING','RIGHT']:
+				c[0] = self.center[0] - self.size[0]*s
+			elif self.val_ori in ['LEFT']:
+				c[0] = self.center[0] + self.size[0]*s
+			elif self.val_ori in ['BOTTOM']:
+				c[1] = self.center[1] + self.size[1]*s
+			elif self.val_ori in ['TOP']:
+				c[1] = self.center[1] - self.size[1]*s
+		else:
+			if self.val_ori in ['LANDING','FLYING','BOTTOM']:
+				c[1] = self.center[1] + self.size[1]*s
+			elif self.val_ori in ['TOP']:
+				c[1] = self.center[1] - self.size[1]*s
+			elif self.val_ori in ['LEFT']:
+				c[0] = self.center[0] + self.size[0]*s
+			elif self.val_ori in ['RIGHT']:
+				c[0] = self.center[0] - self.size[0]*s
+		return c
 
 	def get_tacho_radius(self):
 		return self.radius*0.9

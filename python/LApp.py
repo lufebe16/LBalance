@@ -30,7 +30,7 @@ from kivy.properties import StringProperty, ObjectProperty
 # übersetzung.
 
 import gettext
-t = gettext.translation('base', 'locales')
+t = gettext.translation('base', 'locales', fallback=True)
 _ = t.gettext
 
 # =============================================================================
@@ -490,7 +490,7 @@ class LWorkWindow(BoxLayout):
 				py = (touch.pos[1] - cent[1])  / rad * 45
 				theta = math.sqrt(px*px+py*py)
 				phi = math.atan2(py,px)
-				x,y,z = kart(9.81,phi,math.radians(theta))
+				x,y,z = kart(9.81,phi,math.radians(90-theta))
 				self.refresh(x,y,z)
 
 		return False

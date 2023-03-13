@@ -7,7 +7,10 @@ import math
 # helpers.
 
 def kart(r,phi,theta):
-	z = r * math.cos(theta)
+	#z = r * math.cos(theta)
+	# -> das system mit theta (KS d. dtheoret. Physik)
+	z = r * math.sin(theta)
+	# -> das system mit gross phi statt theta (geografisches KS)
 	rxy = math.sqrt(r*r - z*z)
 	x = rxy * math.cos(phi)
 	y = rxy * math.sin(phi)
@@ -20,8 +23,22 @@ def polar(x,y,z):
 	rxy = math.sqrt(x*x+y*y)
 	phi = math.atan2(y,x);
 	theta = math.atan2(z,rxy)
+	# -> das system mit gross phi statt theta (geografisches KS)
+	print('1',theta)
 	r = math.sqrt(x*x+y*y+z*z)
+	#theta = math.acos(z/r)
+	# -> das system mit theta (KS d. dtheoret. Physik)
+	print('2',theta)
 	return r,phi,theta
+
+	# hab da einen heillosen durcheinander angerichtet !!!
+	# bei der polarumwandlung wurde das geografische verwendet -
+	# und bei der kartesischen ubwandlung das physikalische.
+
+	# -> nun wurde die kart. korrigiert. Bendingte nur eine Aenderung LApp.py.)
+	# so ist es wenigstens konsistent jetzt.
+
+	# -> aber eigentlich wollte ich das physikalsche verwenden !
 
 def polarDeg(x,y,z):
 	r,phi,theta = polar(x,y,z)
@@ -59,7 +76,10 @@ class LValue(object):
 		self.valY = valY
 		self.valZ = valZ
 		self.g,self.phi,self.theta = polarDeg(valX,valY,valZ)
-		#print (self.g,self.phi,self.theta)
+
+		#self.theta = 90-self.theta
+
+		print ('g,phi,theta',self.g,self.phi,self.theta)
 
 		def norm45(angle):
 			angle = normAngle(angle)

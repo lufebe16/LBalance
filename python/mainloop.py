@@ -9,12 +9,15 @@ import sensors
 #=============================================================================
 # Sprache konfigurieren.
 
+import locale
 import gettext
 
 if 'LANG' not in os.environ:
 	if sensors.jnius is not None:  # android
 		Locale = sensors.jnius.autoclass('java.util.Locale')
 		os.environ['LANG'] = Locale.getDefault().getLanguage()
+
+locale.setlocale(locale.LC_ALL, '')
 
 #=============================================================================
 

@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,po,mo,ttf
 #source.exclude_exts = spec, req.txt
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin, __pycache__, xml, research, fastlane
+source.exclude_dirs = bin, __pycache__, xml, research, fastlane, helpers
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
@@ -297,6 +297,8 @@ android.wakelock = True
 # In past, was `android.arch` as we weren't supporting builds for multiple archs at the same time.
 #android.archs = arm64-v8a, armeabi-v7a
 android.archs = armeabi-v7a
+#android.archs = x86
+#android.archs = x86_64
 
 # (int) overrides automatic versionCode computation (used in build.gradle)
 # this is not the same as app version and should only be edited if you know what you're doing
