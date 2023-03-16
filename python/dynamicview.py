@@ -373,7 +373,7 @@ class LAngleViewAV(LAngleView):
 
 	def dirline(self,balance,xv,yv,cx,cy):
 		set_color(self.pointer_color)
-		if balance>0.1:
+		if balance>0.1 or balance<-0.1:
 			Line(points=[xv,yv,cx,cy],width=2.2)
 
 	def draw(self,value):
@@ -412,7 +412,7 @@ class LAngleViewAV(LAngleView):
 			PushMatrix()
 			Translate(x,y)
 			Rotate(angle=value.phi,origin=(0,0))
-			Scale(radius/14.0,origin=(0,0))
+			Scale(radius/13.0,origin=(0,0))
 			self.pointer()
 			PopMatrix()
 
@@ -427,10 +427,10 @@ class LAngleViewAV(LAngleView):
 			PushMatrix()
 			Translate(x,y)
 			if value.orientation() in ["LEFT","RIGHT"]:
-				Scale(length/7,length/14,1,origin=(0,0))
+				Scale(length/8.4,length/17,1,origin=(0,0))
 				Rotate(angle=90,origin=(0,0))
 			else:
-				Scale(length/14,length/7,1,origin=(0,0))
+				Scale(length/17,length/8.4,1,origin=(0,0))
 			self.pointer(line=True)
 			PopMatrix()
 
@@ -478,11 +478,6 @@ class LAngleViewBA(LAngleView):
 
 		anf = LFont.small()*1.5
 
-		x = value.rollExt()
-		y = value.pitchExt()
-		x = x*radius/45.0 + cx
-		y = y*radius/45.0 + cy
-
 		weiss = self.deckweiss
 		horizontcolor = self.horizontcolor
 		pitchnrollcolor = self.pitchnrollcolor
@@ -506,11 +501,19 @@ class LAngleViewBA(LAngleView):
 			Rectangle(texture=gg,pos=(0.0,-2.0), size=(4.0,4.0))
 			PopMatrix()
 
+		x = value.rollExt()
+		y = value.pitchExt()
+		#print ('roll,pitch,ext',x,y)
+
+		x = x*radius/45.0 + cx
+		y = y*radius/45.0 + cy
+		#print ('dx,dy',x-cx,y-cy)
+
 		# künstl Horizont:
 		if self.val_ori in ['LANDING']:
 			xyLine(x,y,grb,grb,width=0.0)
 		elif self.val_ori in ['BOTTOM','TOP','LEFT','RIGHT']:
-			if value.theta > 0:
+			if value.theta < 90.0:
 				xyLine(x-2*radius*math.cos(phiR),y-2*radius*math.sin(phiR),grb,grg)
 			else:
 				xyLine(x+2*radius*math.cos(phiR),y+2*radius*math.sin(phiR),grb,grg)
@@ -541,7 +544,8 @@ class LAngleViewBA(LAngleView):
 		PopMatrix()
 		tx = cx+0.27*radius*math.cos(phiR+math.pi)
 		ty = cy+0.27*radius*math.sin(phiR+math.pi)
-		rotated_text("{0: 5.2f}\u00b0".format(90-value.theta),
+		#rotated_text("{0: 5.2f}\u00b0".format(90-theta),
+		rotated_text("{0: 5.2f}\u00b0".format(value.theta),
 			pos=(tx,ty),angle=value.phi-90,anchor=(-1,0),font_size=anf,color=weiss)
 
 		# Balance

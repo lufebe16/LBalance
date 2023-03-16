@@ -6,11 +6,19 @@ import math
 # =============================================================================
 # helpers.
 
+# ANM: Wir verwenden die in der Physik gebräuchlichen Polarkoordinaten.
+# Dabei ist:
+#  theta:
+#    der Winkel zwischen dem Vektor (Erdbeschleunigung g) und der
+#    z-Achse (Bereich 0..180 Grad).
+#    (Die Erdwissenschafter defniern statt dessen die
+#    geographische Breite, entsprechend 90-theta, Bereich -90..90.)
+#  phi:
+#    der Ebenenwinkel zur Projektion entlang der z-Achse des Vektors
+#    auf die xy-Ebene (Bereich -180..180).
+
 def kart(r,phi,theta):
-	#z = r * math.cos(theta)
-	# -> das system mit theta (KS d. dtheoret. Physik)
-	z = r * math.sin(theta)
-	# -> das system mit gross phi statt theta (geografisches KS)
+	z = r * math.cos(theta)
 	rxy = math.sqrt(r*r - z*z)
 	x = rxy * math.cos(phi)
 	y = rxy * math.sin(phi)
@@ -20,25 +28,13 @@ def kartDeg(r,phi,theta):
 	return kart (r,math.radians(phi),math.radians(theta))
 
 def polar(x,y,z):
-	rxy = math.sqrt(x*x+y*y)
-	phi = math.atan2(y,x);
-	theta = math.atan2(z,rxy)
-	# -> das system mit gross phi statt theta (geografisches KS)
-	print('1',theta)
+	phi = 0.0
+	theta = 0.0
 	r = math.sqrt(x*x+y*y+z*z)
-	#theta = math.acos(z/r)
-	# -> das system mit theta (KS d. dtheoret. Physik)
-	print('2',theta)
+	if r!=0.0:
+		phi = math.atan2(y,x);
+		theta = math.acos(z/r)
 	return r,phi,theta
-
-	# hab da einen heillosen durcheinander angerichtet !!!
-	# bei der polarumwandlung wurde das geografische verwendet -
-	# und bei der kartesischen ubwandlung das physikalische.
-
-	# -> nun wurde die kart. korrigiert. Bendingte nur eine Aenderung LApp.py.)
-	# so ist es wenigstens konsistent jetzt.
-
-	# -> aber eigentlich wollte ich das physikalsche verwenden !
 
 def polarDeg(x,y,z):
 	r,phi,theta = polar(x,y,z)
@@ -77,8 +73,6 @@ class LValue(object):
 		self.valZ = valZ
 		self.g,self.phi,self.theta = polarDeg(valX,valY,valZ)
 
-		#self.theta = 90-self.theta
-
 		print ('g,phi,theta',self.g,self.phi,self.theta)
 
 		def norm45(angle):
@@ -87,46 +81,52 @@ class LValue(object):
 			if angle > 45: angle = 45
 			return angle
 
+		theta = self.theta
+		phi = self.phi
+
 		self.bala = 0.0
 		self.ori = "LANDING"
-		if (self.theta > 45.0):
+		if (theta < 45.0):
 			self.ori = "LANDING"
-			self.bala = norm45(90.0-self.theta)
-		elif (self.theta < -45.0):
+			self.bala = norm45(theta)
+		elif (theta > 135.0):
 			self.ori = "FLYING"
-			self.bala = norm45(-90.0-self.theta)
-		elif (self.phi < 135.0 and self.phi > 45.0):
+			self.bala = norm45(-theta)
+		elif (phi < 135.0 and phi > 45.0):
 			self.ori = "BOTTOM"
-			self.bala = norm45(90.0-self.phi)
-		elif (self.phi < 45.0 and self.phi > -45.0):
+			self.bala = norm45(90.0-phi)
+		elif (phi < 45.0 and phi > -45.0):
 			self.ori = "LEFT"
-			self.bala = norm45(-self.phi)
-		elif (self.phi < -45.0 and self.phi > -135.0):
+			self.bala = norm45(-phi)
+		elif (phi < -45.0 and phi > -135.0):
 			self.ori = "TOP"
-			self.bala = norm45(-90.0-self.phi)
-		elif (self.phi > 135.0 or self.phi < -135.0):
+			self.bala = norm45(-90.0-phi)
+		elif (phi > 135.0 or phi < -135.0):
 			self.ori = "RIGHT"
-			self.bala = norm45(180.0-self.phi)
+			self.bala = norm45(180.0-phi)
 
 	def pitch(self):
-		return (90.0-math.fabs(self.theta)) * math.sin(math.radians(self.phi))
+		reta = normAngle(self.theta * math.sin(math.radians(self.phi)))
+		return reta
 
 	def roll(self):
-		return (90.0-math.fabs(self.theta)) * math.cos(math.radians(self.phi))
+		reta = normAngle(self.theta * math.cos(math.radians(self.phi)))
+		# ev. (konvention) roll  über den vollen winkel zulassen.
+		return reta
 
 	def pitchExt(self):
-		theta = self.theta
-		if self.valZ < 0.0:
-			if theta > 0: theta = 180 - theta
-			if theta < 0: theta = -180 - theta
-		return (90.0-math.fabs(theta)) * math.sin(math.radians(self.phi))
+		# spezialformat für BA emulation.
+		th = self.theta
+		if th > 90: th = -(180 - th)
+		reta = th * math.sin(math.radians(self.phi))
+		return reta
 
 	def rollExt(self):
-		theta = self.theta
-		if self.valZ < 0.0:
-			if theta > 0: theta = 180 - theta
-			if theta < 0: theta = -180 - theta
-		return (90.0-math.fabs(theta)) * math.cos(math.radians(self.phi))
+		# spezialformat für BA emulation.
+		th = self.theta
+		if th > 90: th = -(180 - th)
+		reta = th * math.cos(math.radians(self.phi))
+		return reta
 
 	def balance(self):
 		return self.bala

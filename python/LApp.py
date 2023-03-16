@@ -490,7 +490,8 @@ class LWorkWindow(BoxLayout):
 				py = (touch.pos[1] - cent[1])  / rad * 45
 				theta = math.sqrt(px*px+py*py)
 				phi = math.atan2(py,px)
-				x,y,z = kart(9.81,phi,math.radians(90-theta))
+
+				x,y,z = kart(9.81,phi,math.radians(theta))
 				self.refresh(x,y,z)
 
 		return False
