@@ -9,7 +9,7 @@ This is another angle measuring app for android. It is written
 in Python using the Kivy framework. It offers a number different
 graphic layouts at users choice.
 
-The app ist open source as of the GNU General Public License (see COPYING)
+The app ist open source as of the GNU General Public License (see LICENSE)
 
 # Usage
 
@@ -36,5 +36,5 @@ in the bottom bar.
 
 # Screenshots
 
-![Screenshot](fastlane/metadata/en-US/images/phoneScreenshots/1.png)
-![Screenshot](fastlane/metadata/en-US/images/phoneScreenshots/2.png)
+![Screenshot](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png)
+![Screenshot](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png)
