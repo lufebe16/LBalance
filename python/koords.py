@@ -73,7 +73,7 @@ class LValue(object):
 		self.valZ = valZ
 		self.g,self.phi,self.theta = polarDeg(valX,valY,valZ)
 
-		print ('g,phi,theta',self.g,self.phi,self.theta)
+		#print ('g,phi,theta',self.g,self.phi,self.theta)
 
 		def norm45(angle):
 			angle = normAngle(angle)
@@ -106,25 +106,20 @@ class LValue(object):
 			self.bala = norm45(180.0-phi)
 
 	def pitch(self):
-		reta = normAngle(self.theta * math.sin(math.radians(self.phi)))
-		return reta
+		return self.pitchExt()
 
 	def roll(self):
-		reta = normAngle(self.theta * math.cos(math.radians(self.phi)))
-		# ev. (konvention) roll  über den vollen winkel zulassen.
-		return reta
+		return self.rollExt()
 
 	def pitchExt(self):
-		# spezialformat für BA emulation.
 		th = self.theta
-		if th > 90: th = -(180 - th)
+		if th > 90: th = (180 - th)
 		reta = th * math.sin(math.radians(self.phi))
 		return reta
 
 	def rollExt(self):
-		# spezialformat für BA emulation.
 		th = self.theta
-		if th > 90: th = -(180 - th)
+		if th > 90: th = (180 - th)
 		reta = th * math.cos(math.radians(self.phi))
 		return reta
 

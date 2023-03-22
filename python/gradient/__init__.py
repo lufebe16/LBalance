@@ -7,27 +7,7 @@ from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from kivy.graphics.texture import Texture
 
-from graphics import color_range_ext
-
-# =============================================================================
-# hsv helpers
-
-def hsva_to_rgba(val):
-	abc = list(hsv_to_rgb(val[0],val[1],val[2]))
-	abc.append(val[3])
-	return abc
-
-def rgba_to_hsva(val):
-	abc = list(rgb_to_hsv(val[0],val[1],val[2]))
-	abc.append(val[3])
-	return abc
-
-def hsva_conv(c,hsft=0.0):
-	d = c.copy()
-	if hsft!=0.0:
-		def floormod(v,d): return v - math.floor(v / d)
-		d[0] = floormod(d[0] + hsft,1.0)
-	return hsva_to_rgba(d)
+from graphics import color_range_ext, hsva_to_rgba, rgba_to_hsva, hsva_conv
 
 # =============================================================================
 # 2d buffer for rgba textures.

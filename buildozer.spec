@@ -297,6 +297,7 @@ android.wakelock = True
 # In past, was `android.arch` as we weren't supporting builds for multiple archs at the same time.
 #android.archs = arm64-v8a, armeabi-v7a
 android.archs = armeabi-v7a
+#android.archs = arm64-v8a
 #android.archs = x86
 #android.archs = x86_64
 

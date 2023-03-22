@@ -46,6 +46,7 @@ class sensor_update(object):
 		self.smY = 0.0
 		self.smZ = 0.0
 		self.smooth = smoother.Smoother(0.1)
+		self.lt = 0.0
 
 	def run(self, dt):
 		#logging.info("Appli: sensor run update")
@@ -58,7 +59,10 @@ class sensor_update(object):
 			#st = time.time()
 			self.view.refresh(self.smX, self.smY, self.smZ)
 			#et = time.time()
-			#logging.info("Appli: view refresh: %s" % str(round(et-st,3)))
+			#logging.info("Appli: view duration: %s" % str(round(et-st,3)))
+			#if self.lt > 0:
+			#	logging.info("Appli: view invoke delta: %s" % str(round(st-self.lt,3)))
+			#self.lt = st
 
 	def start_reading(self):
 		logging.info("Appli: sensor start update")

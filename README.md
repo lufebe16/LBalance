@@ -1,15 +1,19 @@
 
-<!--
-<p align="left"><img src="img/img512.png" height="100px"></p>
--->
 
 # LBalance angle measurement app
 
 This is another angle measuring app for android. It is written
-in Python using the Kivy framework. It offers a number different
+in Python using the Kivy framework. It offers a number of different
 graphic layouts at users choice.
 
 The app ist open source as of the GNU General Public License (see LICENSE)
+
+# Build
+
+To build an apk file out of this repository, you need a GNU/Linux system
+such as Debian, Ubuntu, Fedora, Gentoo or Archlinux.
+
+For more detailed instructions read README.build
 
 # Usage
 
@@ -31,7 +35,7 @@ To enumerate layouts tap to the button 'layouts' in the top bar.
 
 ## Angles display
 
-Angles (polar coords) an sensor (cartesic coords) values are displayed also
+Angles (physical convention polar coords) an sensor values are displayed
 in the bottom bar.
 
 # Screenshots

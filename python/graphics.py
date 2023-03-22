@@ -1,10 +1,12 @@
 
 
 import math
+from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from kivy.core.text import LabelBase
 from kivy.uix.label import Label
 from kivy.graphics import *
+from kivy.graphics.tesselator import Tesselator
 from kivy.properties import NumericProperty
 from kivy.event import EventDispatcher
 
@@ -46,6 +48,28 @@ def rectangle(pos=(-1.0,-1.0),size=(2.0,2.0),width=1.0):
 		p[0],p[1]),
 		width=width)
 
+# =============================================================================
+# hsv helpers
+
+def hsva_to_rgba(val):
+	abc = list(hsv_to_rgb(val[0],val[1],val[2]))
+	abc.append(val[3])
+	return abc
+
+def rgba_to_hsva(val):
+	abc = list(rgb_to_hsv(val[0],val[1],val[2]))
+	abc.append(val[3])
+	return abc
+
+def hsva_conv(c,hsft=0.0):
+	d = c.copy()
+	if hsft!=0.0:
+		def floormod(v,d): return v - math.floor(v / d)
+		d[0] = floormod(d[0] + hsft,1.0)
+	return hsva_to_rgba(d)
+
+# =============================================================================
+
 def set_color(color=[0,0,0,0]):
 	Color(color[0],color[1],color[2],color[3])
 
@@ -71,6 +95,9 @@ def color_range_ext(*args,param=0.5):
 
 def set_color_range(cfrom=[0,0,0,0],cto=[1,1,1,1],param=0.5):
 	set_color(color_range(cfrom,cto,param))
+
+# =============================================================================
+# object creation
 
 def baloon(lcolor=[0.1,0.1,0.1,1],lwidth=1.0,lscale=0.9,triangle=True,line=False):
 	Ellipse(pos=(-1,-1),size=(2,2))
@@ -100,6 +127,33 @@ def raute(lcolor=[1,1,1,0.1]):
 	            1.0,0.0,0,0,  0.0,-1.0,0,0, -1.0,0.0,0,0]
 	indices = [0,1,2,4,5,6]
 	Mesh(vertices=vertices, indices=indices).mode = 'triangle_fan'
+
+__welle = None
+def welle(lcolor=[1,1,1,0.1]):
+	global __welle
+	if __welle is None:
+		__welle = InstructionGroup()
+		__welle.add(Color(lcolor[0],lcolor[1],lcolor[2],lcolor[3]))
+
+		shape = []
+		for i in range(-9,10):
+			shape.append((math.cos(math.radians(float(i)*20.0))+1.0)*0.5)
+			shape.append(float(i)/9.0)
+		for i in range(-9,10):
+			shape.append((-math.cos(math.radians(float(-i)*20.0))-1.0)*0.5)
+			shape.append(float(-i)/9.0)
+
+		tess = Tesselator()
+		tess.add_contour(shape)
+		if not tess.tesselate():
+			print("Tesselator didn't work :(")
+			tess = None
+
+		if tess is not None:
+			for vertices, indices in tess.meshes:
+				__welle.add(Mesh(vertices=vertices,indices=indices,mode="triangle_fan"))
+
+	return __welle
 
 # =============================================================================
 # fonts.

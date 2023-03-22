@@ -3,13 +3,17 @@
 import math
 
 from kivy.graphics import *
+from kivy.graphics.transformation import Matrix
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import NumericProperty
 from kivy.event import EventDispatcher
 
 from storage import ConfigDir
-from graphics import set_color, set_color_range, baloon, triangle, rotated_text, LFont, raute
+from graphics \
+	import \
+		set_color, set_color_range, baloon, triangle, rotated_text, \
+		LFont, raute, welle, color_range_ext, hsva_conv
 from koords import normAngle
 
 #=============================================================================
@@ -366,7 +370,8 @@ class LAngleViewAV(LAngleView):
 	def pointer(self,line=False):
 		original = self.val_ori not in ['LANDING','FLYING']
 		if original:
-			raute(lcolor=self.pointer_color)
+			#raute(lcolor=self.pointer_color)
+			self.canvas.after.add(welle(lcolor=self.pointer_color))
 		else:
 			set_color(self.pointer_color)
 			baloon(triangle=False,line=line)
@@ -501,13 +506,12 @@ class LAngleViewBA(LAngleView):
 			Rectangle(texture=gg,pos=(0.0,-2.0), size=(4.0,4.0))
 			PopMatrix()
 
-		x = value.rollExt()
-		y = value.pitchExt()
-		#print ('roll,pitch,ext',x,y)
-
-		x = x*radius/45.0 + cx
-		y = y*radius/45.0 + cy
-		#print ('dx,dy',x-cx,y-cy)
+		if value.theta < 90:
+			x = cx + value.rollExt()*radius/45.0
+			y = cy + value.pitchExt()*radius/45.0
+		else:
+			x = cx - value.rollExt()*radius/45.0
+			y = cy - value.pitchExt()*radius/45.0
 
 		# künstl Horizont:
 		if self.val_ori in ['LANDING']:
@@ -584,6 +588,8 @@ class LAngleViewBA(LAngleView):
 
 from kivy.graphics.scissor_instructions import ScissorPush, ScissorPop
 
+from kivy.graphics.tesselator import Tesselator
+
 class LAngleViewMini(LAngleView):
 	def __init__(self,**kw):
 		super(LAngleViewMini, self).__init__(**kw)
@@ -599,6 +605,25 @@ class LAngleViewMini(LAngleView):
 		coltxt = [0.13,0.13,0.13,1]
 		bal = value.balance()
 
+		# test mit tesselator.
+		# wozu ist das nützlich? Das einzige was ich sehe ist, dass
+		# so beliebibg begrenzte flächen erzeugt werden können. Ev mit
+		# löchern. Aber alles wiederum nur 2D !
+		'''
+		tess = Tesselator()
+		shape = []
+		for i in range(-18,18):
+			shape.append((math.cos(math.radians(float(i)*10.0))+1.0)*0.2)
+			shape.append(float(i)/18.0)
+		for i in range(18,-18,-1):
+			shape.append((-math.cos(math.radians(float(i)*10.0))-1.0)*0.2)
+			shape.append(float(i)/18.0)
+		tess.add_contour(shape)
+		if not tess.tesselate():
+			print("Tesselator didn't work :(")
+			tess = None
+		'''
+
 		ScissorPush(
 			x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
 
@@ -613,6 +638,21 @@ class LAngleViewMini(LAngleView):
 		set_color(collin)
 		Line(points=[0.0,-0.2,0.0,-1.0],width=wid/max(radius,0.01))
 		Line(points=[-2.0,0.0,2.0,0.0],width=wid/max(radius,0.01))
+
+		'''
+		# test mit tesselator.
+		if tess is not None:
+			Color(1,0,1,0.3)
+			for vertices, indices in tess.meshes:
+				self.canvas.after .add(Mesh(
+					vertices=vertices,
+					indices=indices,
+					mode="triangle_fan"))
+
+				print(list(vertices))
+				print(list(indices))
+		'''
+
 		PopMatrix()
 
 		ScissorPop()
@@ -630,6 +670,7 @@ class LAngleViewBubble(LAngleView):
 		whtd = [1.0,1.0,1.0,1.0]
 		lld2 = [ 0xd9/255.0, 0xe8/255.0, 0.8, 0.7]
 		self.tex_bubble = Gradient.centered(whtd,lld2,lld)
+		self.value = None
 
 	# die Luftblase
 	def bubble(self,x,y,radius,scale,start=0,end=360):
@@ -700,6 +741,7 @@ class LAngleViewBubble(LAngleView):
 			color=[0.0,1.0,0.05,1])
 
 	def draw(self,value):
+		self.value = value
 		radius = self.bckgnd.get_meter_length()/2.0
 		center = self.bckgnd.get_tacho_center()
 		scale = self.bckgnd.get_meter_aspect()
@@ -741,17 +783,15 @@ class LAngleViewBubble(LAngleView):
 		# anschriften.
 		if self.val_ori in ['LANDING','FLYING']:
 			if self.size[1] > self.size[0]:
-				bxl = self.pos[0] + self.size[0]*.25
-				bxr = self.pos[0] + self.size[0]*.75
+				bx = self.pos[0] + self.size[0]*.5
 				by = (self.pos[1] + (cy-radius))/2
-				self.textbox(value.roll(), bxl,by,anchor=(0,0),asel=1,apos=0)
-				self.textbox(value.pitch(), bxr,by,anchor=(0,0),asel=0,apos=1)
+				self.textbox(value.roll(), bx,by,anchor=(-1.2,0),asel=1,apos=0)
+				self.textbox(value.pitch(), bx,by,anchor=(1.2,0),asel=0,apos=1)
 			else:
-				byl = self.pos[1] + self.size[1]*.25
-				byr = self.pos[1] + self.size[1]*.75
+				by = self.pos[1] + self.size[1]*.5
 				bx = (self.pos[0] + self.size[0] + (cx+radius))/2
-				self.textbox(-value.roll(), bx,byr,anchor=(0,0),asel=0,apos=1,angle=90)
-				self.textbox(value.pitch(), bx,byl,anchor=(0,0),asel=1,apos=0,angle=90)
+				self.textbox(-value.roll(), bx,by,anchor=(1.2,0),asel=0,apos=1,angle=90)
+				self.textbox(value.pitch(), bx,by,anchor=(-1.2,0),asel=1,apos=0,angle=90)
 		elif self.val_ori in ['BOTTOM']:
 			bx = self.pos[0] + self.size[0]*.5
 			by = (self.pos[1] + (cy-radius*scale))/2
@@ -768,5 +808,175 @@ class LAngleViewBubble(LAngleView):
 			by = self.pos[1] + self.size[1]*.5
 			bx = (self.pos[0] + self.size[0] + (cx+radius*scale))/2
 			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=90)
+
+#=============================================================================
+
+import time
+
+class LAngleViewKugel(LAngleView):
+	def __init__(self,**kw):
+		super(LAngleViewKugel, self).__init__(**kw)
+		self.l3d = None
+		self.last_time = 0.0
+		self.avg = 0
+		self.light = True
+
+	def Line3d(self,x1,y1,x2,y2,width=1.0):
+		dx = x2-x1
+		dy = y2-y1
+		l = math.sqrt(dx*dx+dy*dy)
+		a = math.atan2(dy,dx)
+		w = width
+
+		#print ("dx,dy = {0: 5.2f},{1: 5.2f}".format(dx,dy))
+		#print ("l,a = {0: 5.2f},{1: 5.2f}".format(l,a))
+		#print ("width",width,w)
+		#w = 1.0
+
+		self.l3d.add(PushMatrix())
+		self.l3d.add(Translate(x1,y1,0))
+		self.l3d.add(Rotate(angle=math.degrees(math.atan2(dy,dx)),axis=(0,0,1),origin=(0,0,0)))
+		self.l3d.add(Scale(l,1,1,origin=(0,0,0)))
+		self.l3d.add(Line(points=(0.0,0.0,1.0,0.0),width=w))
+		self.l3d.add(Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0)))
+		self.l3d.add(Line(points=(0.0,0.0,1.0,0.0),width=w))
+		#self.l3d.add(Rotate(angle=45.0,axis=(1,0,0),origin=(0,0,0)))
+		#self.l3d.add(Line(points=(0.0,0.0,1.0,0.0),width=w))
+		#self.l3d.add(Rotate(angle=45.0,axis=(1,0,0),origin=(0,0,0)))
+		#self.l3d.add(Line(points=(0.0,0.0,1.0,0.0),width=w))
+		self.l3d.add(PopMatrix())
+
+	def Circle3d(self,circle=(0.0,0.0,1.0),width=1.0):
+		n = 48
+		cx = circle[0]
+		cy = circle[1]
+		r = circle[2]
+		for i in range(0,n):
+			ii = float(i)
+			a0 = ii*2*math.pi/n
+			a1 = (ii+1)*2*math.pi/n
+			self.Line3d(
+				r*math.cos(a0),
+				r*math.sin(a0),
+				r*math.cos(a1),
+				r*math.sin(a1),
+				width=width)
+
+	def breiten(self,width=1.0):
+		self.l3d.add(PushMatrix())
+		self.Circle3d(circle=(0,0,1),width=width)
+		for i in range(1,6):
+			s = math.sin(math.radians(i*15))
+			c = math.cos(math.radians(i*15))
+			self.l3d.add(Translate(0,0,s))
+			if self.light:
+				if i == 2:
+					self.Circle3d(circle=(0,0,c),width=width)
+				else:
+					self.l3d.add(Line(circle=(0,0,c),width=1.0))
+			else:
+				self.Circle3d(circle=(0,0,c),width=width)
+			self.l3d.add(Translate(0,0,-s))
+		for i in range(1,6):
+			s = math.sin(math.radians(i*15))
+			c = math.cos(math.radians(i*15))
+			self.l3d.add(Translate(0,0,-s))
+			if self.light:
+				if i == 2:
+					self.Circle3d(circle=(0,0,c),width=width)
+				else:
+					self.l3d.add(Line(circle=(0,0,c),width=1.0))
+			else:
+				self.Circle3d(circle=(0,0,c),width=width)
+			self.l3d.add(Translate(0,0,s))
+		self.l3d.add(PopMatrix())
+
+	def meridiane(self,width=1.0):
+		self.l3d.add(PushMatrix())
+		self.l3d.add(Rotate(angle=90,axis=(0,1,0),origin=(0,0,0)))
+		self.Circle3d(circle=(0,0,1),width=width)
+		for i in range(1,12):
+			self.l3d.add(Rotate(angle=15,axis=(1,0,0),origin=(0,0,0)))
+			if i==6:
+				self.Circle3d(circle=(0,0,1),width=width)
+			else:
+				if self.light:
+					self.l3d.add(Line(circle=(0,0,1),width=1.0))
+				else:
+					self.Circle3d(circle=(0,0,1),width=width)
+		self.l3d.add(PopMatrix())
+
+	def kugel(self,x,y,radius,width=1.0):
+		PushMatrix()
+		Translate(x,y,0)
+		Scale(radius*0.92,radius*0.92,0,origin=(0,0,0))
+		#Scale(radius*1.3,radius*1.3,0,origin=(0,0,0))
+		#Scale(radius*0.9,radius*0.9,2,origin=(0,0,0))
+
+		if self.value is not None:
+			theta = self.value.theta
+			if theta > 90.0: theta = (180 - theta)
+			Rotate(angle=theta,axis=(-self.value.pitch(),self.value.roll(),0),origin=(0,0,0))
+
+		if self.l3d is None:
+			self.l3d = InstructionGroup()
+			self.meridiane(width=width)
+			self.breiten(width=width)
+
+		self.canvas.after.add(self.l3d)
+
+		PushMatrix()
+		Rotate(angle=-90.0,axis=(1,0,0),origin=(0,0,0))
+		Translate(0.0,1.0,0.0)
+		Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0))
+		Ellipse(pos=(-0.01,-0.01),size=(0.02,0.02))
+		PopMatrix()
+
+		PushMatrix()
+		Rotate(angle=-90.0,axis=(1,0,0),origin=(0,0,0))
+		Translate(0.0,-1.0,0.0)
+		Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0))
+		Ellipse(pos=(-0.01,-0.01),size=(0.02,0.02))
+		PopMatrix()
+
+		PopMatrix()
+
+	def draw(self,value):
+		self.value = value
+		radius = self.bckgnd.get_tacho_radius()
+		center = self.bckgnd.get_tacho_center()
+		scale = self.bckgnd.get_meter_aspect()
+		scale = 0.18
+		cx = center[0]
+		cy = center[1]
+		anf = LFont.angle()*1.8
+
+		y = value.pitch()
+		x = value.roll()
+		x = x*radius/90.0 + cx
+		y = y*radius/90.0 + cy
+
+		# Winkelanzeige
+		bal = value.balance()
+		p = math.fabs(bal)*0.2
+		cr = hsva_conv([0.0,0.8,0.5,1])
+		#co = hsva_conv([0.18,0.8,0.7,1])
+		co = hsva_conv([0.09,0.8,0.6,1])
+		cg = hsva_conv([0.32,0.8,0.4,1])
+		coltxt = color_range_ext(cg,cg,cg,co,co,co,co,co,co,co,co,co,co,cr,cr,param=p)
+		rotated_text("{0: 4.1f}\u00b0".format(bal),
+			pos=(cx,cy),angle=value.phi-90.0,anchor=(0,0),font_size=anf,color=coltxt)
+
+		# Welt Grid anzeigen
+		size = self.size[1]/2.0
+		if self.size[0] > self.size[1]: size = self.size[0]/2.0
+
+		st = time.time()
+		set_color([0.1,0.1,0.1,1])
+		if radius > 0.0:
+			self.kugel(cx,cy,size,width=1.5/size)
+		dt = st-self.last_time
+		#print ('delta:',dt)
+		self.last_time = st
 
 #=============================================================================
