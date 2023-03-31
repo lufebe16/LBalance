@@ -16,7 +16,7 @@ from staticview \
 from dynamicview \
 	import LAngleViewMini,LAngleViewFull,LAngleViewAValt, \
 		LAngleViewFull2,LAngleViewAV,LAngleViewBA,LAngleViewBubble, \
-		LAngleViewKugel
+		LAngleViewKugel, LAngleViewKugelP, LAngleViewCube
 
 import json
 
@@ -60,6 +60,10 @@ class LLayouts(EventDispatcher):
 			LAngleViewBubble,LCircleViewBubble,[0.0, 0.0, 0.0, 0.0]))
 		self.layouts.append(LLayout(
 			LAngleViewKugel,LCircleViewMini,[0.2, 0.2, 0.2, 1.0]))
+		# test:
+		self.layouts.append(LLayout(
+			LAngleViewCube,LCircleViewMini,[0.2, 0.2, 0.2, 1.0]))
+
 		self.read()
 
 	def current(self):

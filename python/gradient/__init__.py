@@ -72,17 +72,17 @@ class Gradient(object):
 		return texture
 
 	@staticmethod
-	def centered(*args,size=64,center=(0.5,0.5),hsva=False,hsft=0.0):
+	def centered(*args,size=64,center=(0.5,0.5),radius=0.5,hsva=False,hsft=0.0):
 		texsize = size
 		#print('texsize',texsize,len(args))
-		tex = Texture.create(size=(texsize, texsize))
+		tex = Texture.create(size=(texsize, texsize), colorfmt='rgba')
 		texarr = rgba2d(texsize)
 		for x in range(0,texsize,1):
 			dx = abs(int(math.floor(center[0]*texsize)-x))
 			for y in range(0,texsize,1):
 				dy = abs(int(math.floor(center[1]*texsize)-y))
 				r = math.sqrt(dx*dx+dy*dy)
-				p = 2*r/texsize
+				p = (1.0/radius)*r/texsize
 
 				val = color_range_ext(*args,param=p)
 				if hsva: val = hsva_conv(val,hsft=hsft)

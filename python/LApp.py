@@ -392,6 +392,9 @@ class LWorkWindow(BoxLayout):
 		self.variant = 0
 		self.static_variant = 1
 
+		#print(Window.render_context)
+		#print(Window.render_context['projection_mat'])
+
 	def update(self, *args):
 		Clock.unschedule(self.update_event)
 		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)

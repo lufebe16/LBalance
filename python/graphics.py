@@ -13,7 +13,9 @@ from kivy.event import EventDispatcher
 # =============================================================================
 # graphic helpers
 
-def rotated_text(text="<empty>",pos=(0,0),angle=0,font_size=16,font_name="",anchor=(0,0),color=[1,1,1,1],bgnd=False,bcolor=[0,0,0,1]):
+def rotated_text(text="<empty>",pos=(0,0),angle=0,
+		font_size=16,font_name="",anchor=(0,0),color=[1,1,1,1],
+		bgnd=False,bcolor=[0,0,0,1]):
 	x = pos[0]
 	y = pos[1]
 	l = Label(text=text,font_size=font_size,pos=(-100,-100))
@@ -71,7 +73,7 @@ def hsva_conv(c,hsft=0.0):
 # =============================================================================
 
 def set_color(color=[0,0,0,0]):
-	Color(color[0],color[1],color[2],color[3])
+	return Color(color[0],color[1],color[2],color[3])
 
 def color_range(cfrom=[0,0,0,0],cto=[1,1,1,1],param=0.5):
 	if param<0.0: return cfrom
@@ -94,7 +96,7 @@ def color_range_ext(*args,param=0.5):
 			return args[s]	# (darf eigentlich nicht vorkommen).
 
 def set_color_range(cfrom=[0,0,0,0],cto=[1,1,1,1],param=0.5):
-	set_color(color_range(cfrom,cto,param))
+	return set_color(color_range(cfrom,cto,param))
 
 # =============================================================================
 # object creation
@@ -124,7 +126,7 @@ def triangle(lcolor=[1,1,1,0.1]):
 def raute(lcolor=[1,1,1,0.1]):
 	set_color(lcolor)
 	vertices = [1.0,0.0,0,0, 0.0,1.0,0,0, -1.0,0.0,0,0,
-	            1.0,0.0,0,0,  0.0,-1.0,0,0, -1.0,0.0,0,0]
+							1.0,0.0,0,0,  0.0,-1.0,0,0, -1.0,0.0,0,0]
 	indices = [0,1,2,4,5,6]
 	Mesh(vertices=vertices, indices=indices).mode = 'triangle_fan'
 

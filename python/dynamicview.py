@@ -4,10 +4,12 @@ import math
 
 from kivy.graphics import *
 from kivy.graphics.transformation import Matrix
+from kivy.graphics.context_instructions import Transform
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
-from kivy.properties import NumericProperty
+from kivy.properties import NumericProperty, ObjectProperty
 from kivy.event import EventDispatcher
+from kivy.uix.label import Label
 
 from storage import ConfigDir
 from graphics \
@@ -20,6 +22,8 @@ from koords import normAngle
 # Definiert den App Vordergrund
 
 class LAngleView(BoxLayout):
+	value = ObjectProperty()
+
 	def __init__(self,**kw):
 		super(LAngleView, self).__init__(**kw)
 		self.bkcolor = [0.15, 0.00, 0.3, 1]
@@ -37,6 +41,9 @@ class LAngleView(BoxLayout):
 		self.last_phi = 0.0
 		self.last_theta = 0.0
 
+	def on_value(self, inst, newvalue):
+		print('value changed')
+
 	def update(self,*args):
 		Clock.unschedule(self.update_event)
 		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
@@ -44,11 +51,6 @@ class LAngleView(BoxLayout):
 	def update_scheduled(self,*args):
 		self.rect.pos = self.pos
 		self.rect.size = self.size
-
-		#print("LAngleView (pos): ",self.pos)
-		#print("LAngleView (size): ",self.size)
-		#print("LAngleView (center): ",self.center)
-		pass
 
 	def set_background(self,bckgnd):
 		self.clear_widgets()
@@ -66,10 +68,11 @@ class LAngleView(BoxLayout):
 		if math.fabs(self.last_theta-value.theta) < 0.005: return
 		self.last_theta = value.theta
 
-		# Vordergrund neu zeichnen.
-		self.canvas.after.clear()
-		with self.canvas.after:
-			self.draw(value)
+		# neu value (objectproperty)
+		self.value = value
+
+		# (alte methode - für kompatibilität vorläufig)
+		self.draw(value)
 
 	def draw(self,value):
 		# Implementation in derived classes.
@@ -99,47 +102,44 @@ class LAngleViewSimple(LAngleView):
 		super(LAngleViewSimple, self).__init__(**kw)
 
 	def draw(self,value):
+		self.canvas.after.clear()
+		with self.canvas.after:
 
-		radius = self.bckgnd.get_tacho_radius()
-		circle = self.bckgnd.get_tacho_center()
+			radius = self.bckgnd.get_tacho_radius()
+			circle = self.bckgnd.get_tacho_center()
 
-		balance = value.balance()
-		txtangle = value.txtori()
-		x,y = value.xy()
-		x = x*radius/45.0 + circle[0]
-		y = y*radius/45.0 + circle[1]
+			balance = value.balance()
+			txtangle = value.txtori()
+			x,y = value.xy()
+			x = x*radius/45.0 + circle[0]
+			y = y*radius/45.0 + circle[1]
 
-		cx = circle[0]
-		cy = circle[1]
-		alf = math.atan2(y-cy,x-cx)
-		xv = radius * math.cos(alf) + cx
-		yv = radius * math.sin(alf) + cy
-		xh = radius * math.cos(alf+math.pi) + cx
-		yh = radius * math.sin(alf+math.pi) + cy
-		xl = radius * math.cos(alf-math.pi/2.0) + cx
-		yl = radius * math.sin(alf-math.pi/2.0) + cy
-		xr = radius * math.cos(alf+math.pi/2.0) + cx
-		yr = radius * math.sin(alf+math.pi/2.0) + cy
+			cx = circle[0]
+			cy = circle[1]
+			alf = math.atan2(y-cy,x-cx)
+			xv = radius * math.cos(alf) + cx
+			yv = radius * math.sin(alf) + cy
+			xh = radius * math.cos(alf+math.pi) + cx
+			yh = radius * math.sin(alf+math.pi) + cy
+			self.balance_label(balance,txtangle,[0.7,0.7,0.7,1])
 
-		self.balance_label(balance,txtangle,[0.7,0.7,0.7,1])
+			good = 5.0
+			set_color_range(
+					[0.5,1.0,0.0,0.6],[1.0,0.6,0.0,0.7],math.fabs(value.balance())/good)
 
-		good = 5.0
-		set_color_range(
-			[0.5,1.0,0.0,0.6],[1.0,0.6,0.0,0.7],math.fabs(value.balance())/good)
+			if value.orientation() in ["LANDING","FLYING"]:
+				#Line(points=[x,y, 2*cx-x, 2*cy-y],width=2.0)
+				if balance>0.1:
+					Line(points=[xv,yv,xh,yh],width=2.0)
+				else:
+					Line(points=[xv,yv,xh,yh],width=2.0)
 
-		if value.orientation() in ["LANDING","FLYING"]:
-			#Line(points=[x,y, 2*cx-x, 2*cy-y],width=2.0)
-			if balance>0.1:
-				Line(points=[xv,yv,xh,yh],width=2.0)
-		else:
-			Line(points=[xv,yv,xh,yh],width=2.0)
-
-		PushMatrix()
-		Translate(x,y)
-		Rotate(angle=value.phi,origin=(0,0))
-		Scale(2.0*radius/9.0,origin=(0,0))
-		baloon()
-		PopMatrix()
+			PushMatrix()
+			Translate(x,y)
+			Rotate(angle=value.phi,origin=(0,0))
+			Scale(2.0*radius/9.0,origin=(0,0))
+			baloon()
+			PopMatrix()
 
 #=============================================================================
 
@@ -148,11 +148,16 @@ class LAngleViewTriangle(LAngleView):
 		super(LAngleViewTriangle, self).__init__(**kw)
 
 	def draw(self,value):
+		self.canvas.after.clear()
+		with self.canvas.after:
+			self.drawit(value)
+
+	def drawit(self,value):
 		radius = self.bckgnd.get_tacho_radius()
 		circle = self.bckgnd.get_tacho_center()
 
 		balance = value.balance()
-		txtangle = value.txtori()
+		#txtangle = value.txtori()
 		x,y = value.xy()
 		x = x*radius/45.0 + circle[0]
 		y = y*radius/45.0 + circle[1]
@@ -171,7 +176,9 @@ class LAngleViewTriangle(LAngleView):
 
 		anf = LFont.angle()
 		txt = "{0: 5.2f}\u00b0".format(value.balance())
-		rotated_text(txt,pos=(cx,cy),angle=value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
+		rotated_text(txt,pos=(cx,cy),
+			angle=value.phi-90,anchor=(0,-3.5),
+			font_size=anf,color=[0.7, 0.7, 0.7, 1])
 
 		good = 5.0
 		set_color_range(
@@ -179,12 +186,6 @@ class LAngleViewTriangle(LAngleView):
 		#self.center_color(balance)
 
 		if value.orientation() in ["LANDING","FLYING"]:
-			x4 = radius/9.0 * math.cos(alf+math.pi) + cx
-			y4 = radius/9.0 * math.sin(alf+math.pi) + cy
-			x2 = radius * math.cos(alf-math.pi/2.0) + cx
-			y2 = radius * math.sin(alf-math.pi/2.0) + cy
-			x1 = radius * math.cos(alf+math.pi/2.0) + cx
-			y1 = radius * math.sin(alf+math.pi/2.0) + cy
 			if abs(balance) > 0.1:
 				Line(points=[cx,cy,xv,yv],width=2.0)
 				Line(points=[xv,yv,xl,yl],width=2.0)
@@ -210,11 +211,16 @@ class LAngleViewCurved(LAngleView):
 		super(LAngleViewCurved, self).__init__(**kw)
 
 	def draw(self,value):
+		self.canvas.after.clear()
+		with self.canvas.after:
+			self.drawit(value)
+
+	def drawit(self,value):
 		radius = self.bckgnd.get_tacho_radius()
 		circle = self.bckgnd.get_tacho_center()
 
 		balance = value.balance()
-		txtangle = value.txtori()
+		#txtangle = value.txtori()
 		x,y = value.xy()
 		x = x*radius/45.0 + circle[0]
 		y = y*radius/45.0 + circle[1]
@@ -226,14 +232,12 @@ class LAngleViewCurved(LAngleView):
 		yv = radius * math.sin(alf) + cy
 		xh = radius * math.cos(alf+math.pi) + cx
 		yh = radius * math.sin(alf+math.pi) + cy
-		xl = radius * math.cos(alf-math.pi/2.0) + cx
-		yl = radius * math.sin(alf-math.pi/2.0) + cy
-		xr = radius * math.cos(alf+math.pi/2.0) + cx
-		yr = radius * math.sin(alf+math.pi/2.0) + cy
 
 		anf = LFont.angle()
 		txt = "{0: 5.2f}\u00b0".format(value.balance())
-		rotated_text(txt,pos=(cx,cy),angle=value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
+		rotated_text(txt,pos=(cx,cy),
+			angle=value.phi-90,anchor=(0,-3.5),
+			font_size=anf,color=[0.7, 0.7, 0.7, 1])
 
 		good = 5.0
 		set_color_range(
@@ -266,6 +270,11 @@ class LAngleViewFull(LAngleView):
 		self.trianglecolor = [1,1,1,0.1]
 
 	def draw(self,value):
+		self.canvas.after.clear()
+		with self.canvas.after:
+			self.drawit(value)
+
+	def drawit(self,value):
 		radius = self.bckgnd.get_tacho_radius()
 		circle = self.bckgnd.get_tacho_center()
 
@@ -280,10 +289,6 @@ class LAngleViewFull(LAngleView):
 		yv = radius * math.sin(alf) + cy
 		xh = radius * math.cos(alf+math.pi) + cx
 		yh = radius * math.sin(alf+math.pi) + cy
-		xl = radius * math.cos(alf-math.pi/2.0) + cx
-		yl = radius * math.sin(alf-math.pi/2.0) + cy
-		xr = radius * math.cos(alf+math.pi/2.0) + cx
-		yr = radius * math.sin(alf+math.pi/2.0) + cy
 
 		smf = LFont.small()
 		anf = LFont.angle()
@@ -331,7 +336,9 @@ class LAngleViewFull(LAngleView):
 				anzeige_y(value.balance())
 
 		txt = "{0: 5.2f}\u00b0".format(value.balance())
-		rotated_text(txt,pos=(cx,cy),angle=value.phi-90,anchor=(0,-3.5),font_size=anf,color=[0.7, 0.7, 0.7, 1])
+		rotated_text(txt,pos=(cx,cy),
+			angle=value.phi-90,anchor=(0,-3.5),
+			font_size=anf,color=[0.7, 0.7, 0.7, 1])
 
 		# Kreuzungspunkt der linien
 		set_color([0.7, 0.7, 0.7, 1])   # hellgrau
@@ -382,7 +389,11 @@ class LAngleViewAV(LAngleView):
 			Line(points=[xv,yv,cx,cy],width=2.2)
 
 	def draw(self,value):
+		self.canvas.after.clear()
+		with self.canvas.after:
+			self.drawit(value)
 
+	def drawit(self,value):
 		# Text ausgabe.
 		balance = value.balance()
 		anf = LFont.angle()
@@ -474,7 +485,11 @@ class LAngleViewBA(LAngleView):
 					[0.0,0.0,0.0,0.1])
 
 	def draw(self,value):
+		self.canvas.after.clear()
+		with self.canvas.after:
+			self.drawit(value)
 
+	def drawit(self,value):
 		radius = self.bckgnd.get_tacho_radius()
 		center = self.bckgnd.get_tacho_center()
 		cx = center[0]
@@ -590,11 +605,23 @@ from kivy.graphics.scissor_instructions import ScissorPush, ScissorPop
 
 from kivy.graphics.tesselator import Tesselator
 
+class LTransform(Transform):
+	def __init__(self,*args,**kwargs):
+		super(LTransform, self).__init__(*args,**kwargs)
+
+	def project(self,mat):
+		self.transform(mat)
+
 class LAngleViewMini(LAngleView):
 	def __init__(self,**kw):
 		super(LAngleViewMini, self).__init__(**kw)
 
 	def draw(self,value):
+		self.canvas.after.clear()
+		with self.canvas.after:
+			self.drawit(value)
+
+	def drawit(self,value):
 		radius = self.bckgnd.get_tacho_radius()
 		center = self.bckgnd.get_tacho_center()
 		cx = center[0]
@@ -605,24 +632,8 @@ class LAngleViewMini(LAngleView):
 		coltxt = [0.13,0.13,0.13,1]
 		bal = value.balance()
 
-		# test mit tesselator.
-		# wozu ist das nützlich? Das einzige was ich sehe ist, dass
-		# so beliebibg begrenzte flächen erzeugt werden können. Ev mit
-		# löchern. Aber alles wiederum nur 2D !
-		'''
-		tess = Tesselator()
-		shape = []
-		for i in range(-18,18):
-			shape.append((math.cos(math.radians(float(i)*10.0))+1.0)*0.2)
-			shape.append(float(i)/18.0)
-		for i in range(18,-18,-1):
-			shape.append((-math.cos(math.radians(float(i)*10.0))-1.0)*0.2)
-			shape.append(float(i)/18.0)
-		tess.add_contour(shape)
-		if not tess.tesselate():
-			print("Tesselator didn't work :(")
-			tess = None
-		'''
+		#self.canvas.after.add(RenderContext(use_parent_projection=False))
+		#print (self.render_context)
 
 		ScissorPush(
 			x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
@@ -639,27 +650,12 @@ class LAngleViewMini(LAngleView):
 		Line(points=[0.0,-0.2,0.0,-1.0],width=wid/max(radius,0.01))
 		Line(points=[-2.0,0.0,2.0,0.0],width=wid/max(radius,0.01))
 
-		'''
-		# test mit tesselator.
-		if tess is not None:
-			Color(1,0,1,0.3)
-			for vertices, indices in tess.meshes:
-				self.canvas.after .add(Mesh(
-					vertices=vertices,
-					indices=indices,
-					mode="triangle_fan"))
-
-				print(list(vertices))
-				print(list(indices))
-		'''
-
 		PopMatrix()
-
 		ScissorPop()
 
 #=============================================================================
 
-from gradient import Gradient
+#from gradient import Gradient
 
 class LAngleViewBubble(LAngleView):
 	def __init__(self,**kw):
@@ -741,13 +737,18 @@ class LAngleViewBubble(LAngleView):
 			color=[0.0,1.0,0.05,1])
 
 	def draw(self,value):
+		self.canvas.after.clear()
+		with self.canvas.after:
+			self.drawit(value)
+
+	def drawit(self,value):
 		self.value = value
 		radius = self.bckgnd.get_meter_length()/2.0
 		center = self.bckgnd.get_tacho_center()
 		scale = self.bckgnd.get_meter_aspect()
 		cx = center[0]
 		cy = center[1]
-		anf = LFont.angle()*2.7
+		#anf = LFont.angle()*2.7
 
 		x,y = value.xy()
 		x = x*radius/45.0 + cx
@@ -810,6 +811,7 @@ class LAngleViewBubble(LAngleView):
 			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=90)
 
 #=============================================================================
+# Kugel Drahtmodel.
 
 import time
 
@@ -820,12 +822,13 @@ class LAngleViewKugel(LAngleView):
 		self.last_time = 0.0
 		self.avg = 0
 		self.light = True
+		self.rotation = None
 
 	def Line3d(self,x1,y1,x2,y2,width=1.0):
 		dx = x2-x1
 		dy = y2-y1
 		l = math.sqrt(dx*dx+dy*dy)
-		a = math.atan2(dy,dx)
+		#a = math.atan2(dy,dx)
 		w = width
 
 		#print ("dx,dy = {0: 5.2f},{1: 5.2f}".format(dx,dy))
@@ -848,8 +851,8 @@ class LAngleViewKugel(LAngleView):
 
 	def Circle3d(self,circle=(0.0,0.0,1.0),width=1.0):
 		n = 48
-		cx = circle[0]
-		cy = circle[1]
+		#cx = circle[0]
+		#cy = circle[1]
 		r = circle[2]
 		for i in range(0,n):
 			ii = float(i)
@@ -863,6 +866,8 @@ class LAngleViewKugel(LAngleView):
 				width=width)
 
 	def breiten(self,width=1.0):
+
+		self.l3d.add(Color(0.1,0.1,0.1,1))
 		self.l3d.add(PushMatrix())
 		self.Circle3d(circle=(0,0,1),width=width)
 		for i in range(1,6):
@@ -891,7 +896,27 @@ class LAngleViewKugel(LAngleView):
 			self.l3d.add(Translate(0,0,s))
 		self.l3d.add(PopMatrix())
 
+	def pole(self,size=0.02):
+		pos = -size/2.0
+		self.l3d.add(PushMatrix())
+		self.l3d.add(Rotate(angle=-90.0,axis=(1,0,0),origin=(0,0,0)))
+		self.l3d.add(Translate(0.0,1.0,0.0))
+		self.l3d.add(Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0)))
+		self.l3d.add(set_color([0.6,0.0,0.0,1]))
+		self.l3d.add(Ellipse(pos=(pos,pos),size=(size,size)))
+		self.l3d.add(PopMatrix())
+
+		self.l3d.add(PushMatrix())
+		self.l3d.add(Rotate(angle=-90.0,axis=(1,0,0),origin=(0,0,0)))
+		self.l3d.add(Translate(0.0,-1.0,0.0))
+		self.l3d.add(Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0)))
+		self.l3d.add(set_color([0.0,0.0,0.6,1]))
+		self.l3d.add(Ellipse(pos=(pos,pos),size=(size,size)))
+		self.l3d.add(PopMatrix())
+
 	def meridiane(self,width=1.0):
+		#self.l3d.add(Color(0.1,0.1,0.1,1))
+		self.l3d.add(set_color([0.1,0.1,0.1,1]))
 		self.l3d.add(PushMatrix())
 		self.l3d.add(Rotate(angle=90,axis=(0,1,0),origin=(0,0,0)))
 		self.Circle3d(circle=(0,0,1),width=width)
@@ -906,47 +931,51 @@ class LAngleViewKugel(LAngleView):
 					self.Circle3d(circle=(0,0,1),width=width)
 		self.l3d.add(PopMatrix())
 
-	def kugel(self,x,y,radius,width=1.0):
-		PushMatrix()
-		Translate(x,y,0)
-		Scale(radius*0.92,radius*0.92,0,origin=(0,0,0))
-		#Scale(radius*1.3,radius*1.3,0,origin=(0,0,0))
-		#Scale(radius*0.9,radius*0.9,2,origin=(0,0,0))
-
-		if self.value is not None:
-			theta = self.value.theta
-			if theta > 90.0: theta = (180 - theta)
-			Rotate(angle=theta,axis=(-self.value.pitch(),self.value.roll(),0),origin=(0,0,0))
-
+	def loadScene(self,canvas,width=1.0):
 		if self.l3d is None:
 			self.l3d = InstructionGroup()
 			self.meridiane(width=width)
 			self.breiten(width=width)
+			self.pole(size=0.03)
+		if self.l3d is not None:
+			canvas.add(self.l3d)
 
-		self.canvas.after.add(self.l3d)
-
+	def kugel(self,value,x,y,radius,width=1.0):
 		PushMatrix()
-		Rotate(angle=-90.0,axis=(1,0,0),origin=(0,0,0))
-		Translate(0.0,1.0,0.0)
-		Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0))
-		Ellipse(pos=(-0.01,-0.01),size=(0.02,0.02))
-		PopMatrix()
+		Translate(x,y,0)
+		Scale(radius*0.92,radius*0.92,0,origin=(0,0,0))
 
-		PushMatrix()
-		Rotate(angle=-90.0,axis=(1,0,0),origin=(0,0,0))
-		Translate(0.0,-1.0,0.0)
-		Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0))
-		Ellipse(pos=(-0.01,-0.01),size=(0.02,0.02))
-		PopMatrix()
+		if value is not None:
+			theta = value.theta
+			#if theta > 90.0: theta = (180 - theta)
+			self.rotation = Rotate(angle=theta,axis=(-value.pitch(),value.roll(),0),origin=(0,0,0))
+			#Rotate(angle=theta,axis=(self.value.pitch(),-self.value.roll(),0),origin=(0,0,0))
 
+		self.loadScene(self.canvas.after,width=width)
 		PopMatrix()
 
 	def draw(self,value):
-		self.value = value
+
+		# TBD: das ginge so, aber auch den Text updaten.
+		'''
+		if self.rotation is not None:
+			self.rotation.axis=(-value.pitch(),value.roll(),0)
+			self.rotation.angle = value.theta
+			return
+		'''
+
+		self.canvas.after.clear()
+		with self.canvas.after:
+			self.drawit(value)
+
+	def drawit(self,value):
+		if value is None: return
 		radius = self.bckgnd.get_tacho_radius()
 		center = self.bckgnd.get_tacho_center()
-		scale = self.bckgnd.get_meter_aspect()
-		scale = 0.18
+		if radius is None: return
+
+		#scale = self.bckgnd.get_meter_aspect()
+		#scale = 0.18
 		cx = center[0]
 		cy = center[1]
 		anf = LFont.angle()*1.8
@@ -971,12 +1000,257 @@ class LAngleViewKugel(LAngleView):
 		size = self.size[1]/2.0
 		if self.size[0] > self.size[1]: size = self.size[0]/2.0
 
-		st = time.time()
+		#st = time.time()
 		set_color([0.1,0.1,0.1,1])
 		if radius > 0.0:
-			self.kugel(cx,cy,size,width=1.5/size)
-		dt = st-self.last_time
+			self.kugel(value,cx,cy,size,width=1.5/size)
+		#dt = st-self.last_time
 		#print ('delta:',dt)
-		self.last_time = st
+		#self.last_time = st
+
+#=============================================================================
+# Kugel Drahtmodel mit Perspektive.
+
+from kivy.graphics.opengl import glEnable, glDisable, GL_DEPTH_TEST
+
+class LAngleViewKugelP(LAngleViewKugel):
+	def __init__(self,**kw):
+		super(LAngleViewKugelP, self).__init__(**kw)
+		with self.canvas:
+			self.fbo = Fbo(with_depthbuffer=True)
+			self.fbo.shader.source = 'glsl/default.glsl'
+			#self.fbo.shader.source = 'glsl/my.glsl'
+
+	def setup_gl_context(self, *args):
+		glEnable(GL_DEPTH_TEST)
+
+	def reset_gl_context(self, *args):
+		glDisable(GL_DEPTH_TEST)
+
+	def kugel(self,value,x,y,radius,width=1.0):
+		self.fbo.size = self.size
+		zscale = 1.0
+		sx = self.size[0]/2
+		sy = self.size[1]/2
+		matvc = Matrix().view_clip(-sx,sx,-sy,sy,5*zscale,6*zscale,0)
+		self.fbo['projection_mat'] = matvc
+		print (matvc)
+
+		with self.fbo:
+			ClearColor(0, 0, 0, 0)
+			ClearBuffers(clear_depth=True)
+			Callback(self.setup_gl_context)
+
+			PushMatrix()
+			Translate(0,0,-6*zscale)
+			Scale(radius*0.92,radius*0.92,zscale,origin=(0,0,0))
+
+			theta = value.theta
+			Rotate(angle=theta,axis=(-value.pitch(),value.roll(),0),origin=(0,0,0))
+
+			self.loadScene(self.fbo,width=width)
+			PopMatrix()
+
+			Callback(self.reset_gl_context,reset_buffer=True)
+
+		Color(1,1,1,1)
+		Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
+
+
+#=============================================================================
+
+class LAngleViewCube(LAngleView):
+	textex = ObjectProperty()
+	texbal = ObjectProperty()
+
+	def __init__(self,**kw):
+		super(LAngleViewCube, self).__init__(**kw)
+
+		self.fborect = None
+		self.rotation = None
+		self.rectstex = []
+		self.rectsbal = []
+
+		with self.canvas:
+			self.fbo = Fbo(size=(1024,1024),with_depthbuffer=True)
+			#self.fbo.shader.source = 'glsl/default.glsl'
+
+		self.fbo.add_reload_observer(self.reinit)
+		self.reinit(self.fbo)
+
+		self.trnp = 0.5
+		self.gradi = Gradient.centered([0,1,0,self.trnp],[1,1,0,self.trnp])
+		self.rbow = Gradient.centered(
+			[1.0,1.0,0.7,self.trnp],[0.0,1.0,0.7,self.trnp],hsva=True,
+			center=(1.2,0.3),radius=1.2,size=128)
+
+	def reinit(self,fbo):
+		print ('********** reload observer call construct ************')
+		self.frect = None
+		self.rotation = None
+		self.rectstex = []
+		self.rectsbal = []
+
+	def setup_gl_context(self, *args):
+		glEnable(GL_DEPTH_TEST)
+
+	def reset_gl_context(self, *args):
+		glDisable(GL_DEPTH_TEST)
+
+	def on_textex(self, inst, newtex):
+		#print ('textex updated')
+		for r in self.rectstex:
+			r.texture = newtex
+
+	def on_texbal(self, inst, newtex):
+		#print ('texbal updated')
+		for r in self.rectsbal:
+			r.texture = newtex
+
+	def mytext(self,val,color=[0,0,0,1],font_size=120):
+		if math.fabs(val)<10.0:
+			text = "{0: 3.2f}\u00b0".format(val)
+		else:
+			text = "{0: 4.1f}\u00b0".format(val)
+		l = Label(text=text,font_size=font_size,pos=(-100,-100))
+		l.color = color
+		l.texture_update()
+		return l.texture
+
+	# Szene Aufbau:
+
+	def face(self,color=[0.5,0.5,0.5,1],tex=None,grad=None):
+		PushMatrix()
+		Translate(0,0,0.5,origin=(0,0,0))
+		if grad is not None:
+			set_color([1,1,1,1])
+			Rectangle(texture=grad,pos=(-0.5,-0.5),size=(1.0,1.0))
+		else:
+			set_color(color)
+			Rectangle(pos=(-0.5,-0.5),size=(1.0,1.0))
+		if tex is not None:
+			Translate(0,0,0.01,origin=(0,0,0))
+			set_color([1,1,1,1])
+			rect = Rectangle(texture=tex,pos=(-0.5,-0.3),size=(1.0,0.6))
+			if tex is self.textex:
+				self.rectstex.append(rect)
+			if tex is self.texbal:
+				self.rectsbal.append(rect)
+		PopMatrix()
+
+	def rects(self,tex1=None,tex2=None,
+			grad1=None,grad2=None,
+			color1=[0.5,0.5,0.5,1],color2=[0.5,0.5,0.5,1]):
+		PushMatrix()
+		self.face(color=color1,tex=tex1,grad=grad1)
+		Rotate(angle=180,origin=(0,0,0),axis=(0.0,0.0,1.0))
+		Rotate(angle=180,origin=(0,0,0),axis=(1.0,0.0,0.0))
+		self.face(color=color2,tex=tex2,grad=grad2)
+		PopMatrix()
+
+	def cube(self):
+		invers = False
+		if invers:
+			Rotate(angle=180,origin=(0,0,0),axis=(0.0,0.0,1.0))
+			Rotate(angle=180,origin=(0,0,0),axis=(1.0,0.0,0.0))
+		self.rects(color1=[1,0,0,self.trnp],color2=[1,0,0,self.trnp],
+			grad1=self.rbow,grad2=self.rbow,
+			tex1=self.textex,tex2=self.textex)
+		if invers:
+			Rotate(angle=-90,origin=(0,0,0),axis=(1.0,0.0,0.0))
+		else:
+			Rotate(angle=90,origin=(0,0,0),axis=(1.0,0.0,0.0))
+		self.rects(color1=[0,1,0,self.trnp],color2=[0,1,0,self.trnp],
+			grad1=self.gradi,grad2=self.gradi,
+			tex1=self.texbal,tex2=self.texbal)
+		if invers:
+			Rotate(angle=-90,origin=(0,0,0),axis=(0.0,1.0,0.0))
+		else:
+			Rotate(angle=90,origin=(0,0,0),axis=(0.0,1.0,0.0))
+		self.rects(color1=[0,0,1,self.trnp],color2=[0,0,1,self.trnp],
+			tex1=self.texbal,tex2=self.texbal)
+
+	# Update
+
+	def on_value(self, inst, value):
+		super(LAngleViewCube,self).on_value(inst,value)
+		#print ('on_value2')
+		self.textex = self.mytext(value.theta)
+		self.texbal = self.mytext(value.bala)
+
+		# Scene ist bereits konstruiert -> Update.
+		if self.rotation is not None:
+			self.rotation.axis = (-value.pitch(),value.roll(),0)
+			self.rotation.angle = value.theta
+			self.fborect.texture = self.fbo.texture
+			return
+
+		# Scene ist noch unbekannt oder ging verloren -> neu erzeugen
+		if value is None: return
+		radius = self.bckgnd.get_tacho_radius()
+		if radius <= 0.0: return
+
+		radius = self.bckgnd.get_tacho_radius()
+		center = self.bckgnd.get_tacho_center()
+		cx = center[0]
+		cy = center[1]
+
+		y = value.pitch()
+		x = value.roll()
+		x = x*radius/90.0 + cx
+		y = y*radius/90.0 + cy
+
+		# jedesmal neu aufsetzen:
+		# -> bleibt immer flüssig, führt längerfristig aber zum Absturz
+		# unter der app. Und zwar SDLThread mit signal 11 (SIGSEGV)
+		# = storage vialotion error. (Vermutl. Speicherleck und -überlauf
+		# in Folge).
+		# .. jedoch, wenn es in der klasse definiert und wiederverwendet
+		# wird, beginnt die scene, anfangs flüssig, mit der Zeit
+		# unangenehm zu ruckeln.
+		# -> Lösung:
+		# Die scene sollte nur einmal aufgesetzt werden. Die veränderlichen
+		# Befehle können in der klass gespeichert und upgedatet werden.
+		# Das funktioniert nun so !
+
+		# Hier definieren wir die perspektive. Wir skalieren die Szene
+		# mit 1, d.h zw. -1 und +1, stellen sie dann 4 z-Einheiten weg
+		# von der Kamera und setzen vorderes und hinteres clipping auf
+		# 3 (near) resp. 5 (far) z-einheiten.
+		zscale = 1.0
+		sx = self.size[0]/2
+		sy = self.size[1]/2
+		matvc = Matrix().view_clip(-sx,sx,-sy,sy,3*zscale,5*zscale,1)
+		self.fbo['projection_mat'] = matvc
+		print (matvc)
+
+		with self.fbo:
+			ClearColor(0, 0, 0, 0)
+			ClearBuffers(clear_depth=True)
+			Callback(self.setup_gl_context)
+
+			PushMatrix()
+			# die folgenden 2 Befehle müssen mit der view-clip matrix
+			# abgeglichen sein - sonst sieht man ganz schnell nichts mehr!
+			Transform().translate(0,0,-4*zscale)
+			Scale(1.9*radius,1.9*radius,zscale,origin=(0,0,0))
+
+			self.rotation = Rotate(
+				angle=value.theta,
+				axis=(-value.pitch(),value.roll(),0),
+				origin=(0,0,0))
+
+			self.cube()
+
+			PopMatrix()
+			Callback(self.reset_gl_context,reset_buffer=True)
+
+		print(self.fbo.texture)
+
+		self.canvas.after.clear()
+		with self.canvas.after:
+			Color(1,1,1,1)
+			self.fborect = Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
+
 
 #=============================================================================

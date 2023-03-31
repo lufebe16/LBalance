@@ -47,28 +47,36 @@ class sensor_update(object):
 		self.smZ = 0.0
 		self.smooth = smoother.Smoother(0.1)
 		self.lt = 0.0
+		self.smode = 0
 
 	def run(self, dt):
-		#logging.info("Appli: sensor run update")
+		logging.info("Appli: sensor run update")
 		if self.reader is not None:
 			r = self.reader
 			self.smooth.updateTime(time.time())
 			self.smX = self.smooth.updateValue(self.smX,r.sensorX)
 			self.smY = self.smooth.updateValue(self.smY,r.sensorY)
 			self.smZ = self.smooth.updateValue(self.smZ,r.sensorZ)
-			#st = time.time()
+			st = time.time()
 			self.view.refresh(self.smX, self.smY, self.smZ)
 			#et = time.time()
-			#logging.info("Appli: view duration: %s" % str(round(et-st,3)))
-			#if self.lt > 0:
-			#	logging.info("Appli: view invoke delta: %s" % str(round(st-self.lt,3)))
-			#self.lt = st
+			# logging.info("Appli: view duration: %s" % str(round(et-st,3)))
+			if self.lt > 0:
+				logging.info("Appli: view invoke delta: %s" % str(round(st-self.lt,3)))
+			self.lt = st
+
+			if self.smode == 1:
+				Clock.unschedule(self.eventId)
+				self.eventId = Clock.schedule_once(self.run,0.05)
 
 	def start_reading(self):
 		logging.info("Appli: sensor start update")
 		if self.reader is not None:
 			self.reader.startListening(sensors.currentActivity)
-		self.eventId = Clock.schedule_interval(self.run,0.05)
+			if self.smode == 0:
+				self.eventId = Clock.schedule_interval(self.run,0.05)
+			if self.smode == 1:
+				self.eventId = Clock.schedule_once(self.run,0.05)
 
 	def stop_reading(self):
 		logging.info("Appli: sensor stop update")
