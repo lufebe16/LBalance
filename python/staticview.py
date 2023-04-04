@@ -20,19 +20,26 @@ class LCircleView(Widget):
 	def __init__(self,**kw):
 		super(LCircleView, self).__init__(**kw)
 
-		self.bind(pos=self.update)
-		self.bind(size=self.update)
+		self.bind(pos=self.update_pos)
+		self.bind(size=self.update_size)
 		self.update_event = None
 		self.msiz = 0
 		self.radius = 0.0
 		self.circle = (0.0,0.0)
+
+	def update_pos(self, inst, pos):
+		Clock.unschedule(self.update_event)
+		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
+
+	def update_size(self, inst, size):
+		Clock.unschedule(self.update_event)
+		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
 
 	def update(self, *args):
 		Clock.unschedule(self.update_event)
 		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
 
 	def update_scheduled(self, *args):
-		#print("CircleView (center):",self.center)
 		self.msiz = msiz = min(self.size[0],self.size[1])
 		self.radius = msiz/2.0
 		self.circle = center = (self.pos[0]+self.size[0]/2,self.pos[1]+self.size[1]/2)
@@ -156,7 +163,7 @@ class LCircleViewFineWithScale(LCircleView):
 	def draw(self):
 		angle = None
 		self.radius = 0.9*self.msiz/2
-		fs = LFont.small()
+		fs = LFont.small()*self.radius/300.0
 		step = self.radius / 45
 		c = self.center
 		r = self.radius
@@ -331,11 +338,11 @@ class LCircleViewAV(LCircleView):
 
 		PushMatrix()
 		if (self.size[0]<self.size[1]):
-			Translate(0,self.pos[1]+(self.size[1]/2.0-m))
+			Translate(self.pos[0],self.pos[1]+(self.size[1]/2.0-m))
 			Scale(2.0*m/self.n,origin=(0,0))
 			self.picture(colorc,color2,color1)
 		else:
-			Translate(self.pos[0]+self.size[0]/2.0+m,0)
+			Translate(self.pos[0]+self.size[0]/2.0+m,self.pos[1])
 			Scale(2.0*m/self.n,origin=(0,0))
 			Rotate(angle=90.0,origin=(0,0))
 			self.picture(colorc,color1,color2)
@@ -447,8 +454,11 @@ class LCircleViewBA(LCircleView):
 		super(LCircleViewBA, self).__init__(**kw)
 
 	def draw(self):
-		#ScissorPush(
-		#	x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
+
+		ScissorPush(
+			x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
+
+		wscale = self.radius/300.0
 
 		set_color([0.02, 0.02, 0.02, 1])   # black
 		Rectangle(pos=self.pos, size=self.size)
@@ -458,13 +468,14 @@ class LCircleViewBA(LCircleView):
 		c = self.get_tacho_center()
 		step = r / 45
 		for i in range(5,46,5):
-			Line(circle=(c[0],c[1],i*step),width=1.5)
-		Line(circle=(c[0],c[1],45*step),width=1.5)
+			Line(circle=(c[0],c[1],i*step),width=1.5*wscale)
+			if i*step > self.radius:
+				break
 
 		set_color([0.1, 0.1, 0.1, 0.5])   # grau
-		Line(circle=(c[0],c[1],277),width=50)
+		Line(circle=(c[0],c[1],277*wscale),width=50)
 
-		#ScissorPop()
+		ScissorPop()
 
 	def get_tacho_center(self):
 		return self.center
@@ -526,20 +537,22 @@ class LCircleViewBubble(LCircleView):
 		t = self.circle_tex
 
 		def hourglass(lwidth=1.0):
+			wid = lwidth*self.radius/300.0
 			set_color([1,1,1,1])
 			Ellipse(pos=(-1,-1),size=(2,2),texture=t)
 			set_color(b)
-			Line(circle=(0,0,1),width=lwidth)
+			Line(circle=(0,0,1),width=wid)
 
 		def bubblebar(lwidth=1.0):
+			wid = lwidth*self.radius/300.0
 
 			def bar():
 				set_color([1,1,1,1])
 				Rectangle(pos=(-1,-1*asp),size=(2,2*asp),texture=self.bar_tex)
 				set_color(b)
-				rectangle(pos=(-1,-1*asp),size=(2,2*asp),width=lwidth)
-				Line(points=(1,-1*asp,1,1*asp),width=lwidth*4)
-				Line(points=(-1,-1*asp,-1,1*asp),width=lwidth*4)
+				rectangle(pos=(-1,-1*asp),size=(2,2*asp),width=wid)
+				Line(points=(1,-1*asp,1,1*asp),width=wid*4)
+				Line(points=(-1,-1*asp,-1,1*asp),width=wid*4)
 
 			asp = self.aspect
 			if self.val_ori in ['BOTTOM']:

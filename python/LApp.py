@@ -16,6 +16,7 @@ from kivy.clock import Clock
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.widget import Widget
 from kivy.uix.layout import Layout
 from kivy.uix.button import Button
@@ -362,7 +363,11 @@ SensorCalibration = LSensorCalibration()
 
 #=============================================================================
 
+import random
+
 class LWorkWindow(BoxLayout):
+	last_value = ObjectProperty()
+
 	def __init__(self,**kw):
 		super(LWorkWindow, self).__init__(**kw)
 
@@ -380,17 +385,17 @@ class LWorkWindow(BoxLayout):
 		self.headerLine = LHeaderLine()
 
 		# statische und variable views (background/foreground).
-		self.circle_view = None
 		self.angle_view = None
 		Layouts.bind(selected=self.update)
 
 		self.ori = None
 		self.calaResetEvent = None
-		self.val_ori = "LANDING"
 
-		# Variantesteurerung (vorläufig)
-		self.variant = 0
-		self.static_variant = 1
+		# object property init
+		self.last_value = None
+
+		self.mode = 0
+		self.stack_layout = None
 
 		#print(Window.render_context)
 		#print(Window.render_context['projection_mat'])
@@ -403,6 +408,11 @@ class LWorkWindow(BoxLayout):
 		self.rect.pos = self.pos
 		self.rect.size = self.size
 
+		if self.stack_layout:
+			#for c in self.stack_layout.children:
+			#	c.size_hint=(None,None)
+			self.stack_layout.clear_widgets()
+			self.stack_layout = None
 		self.clear_widgets()
 		if self.size[0]>=self.size[1]:
 			smin = self.size[1]
@@ -430,13 +440,34 @@ class LWorkWindow(BoxLayout):
 			self.statusLine.set_ori(0)
 
 		LFont.set_screen_size(smin)
-
 		self.add_widget(self.headerLine)
 
-		self.circle_view = Layouts.current().background()
-		self.angle_view = Layouts.current().foreground()
-		self.add_widget(self.angle_view)
-		self.angle_view.set_background(self.circle_view)
+		self.mode = 0
+		#r = random.random()
+		#if  r > 0.4: self.mode = 2
+		#if  r > 0.8: self.mode = 1
+		if self.mode == 0:
+			self.angle_view = Layouts.get_widget(Layouts.current())
+			self.angle_view.size_hint=(1.0,1.0)
+			self.add_widget(self.angle_view)
+		elif self.mode == 1:
+			# test (alle miteinander):
+			self.stack_layout = StackLayout()
+			self.angle_view = self.stack_layout
+			self.add_widget(self.angle_view)
+			for l in Layouts.layouts:
+				w = Layouts.get_widget(l)
+				w.size_hint=(0.33,0.33)
+				#w.width = self.stack_layout.size[0]
+				#w.height = self.stack_layout.size[1]
+				self.angle_view.add_widget(w)
+		elif self.mode == 2:
+			self.stack_layout = StackLayout()
+			self.angle_view = self.stack_layout
+			self.add_widget(self.angle_view)
+			w = Layouts.get_widget(Layouts.current())
+			w.size_hint=(0.5,0.5)
+			self.angle_view.add_widget(w)
 
 		self.add_widget(self.statusLine)
 
@@ -452,14 +483,12 @@ class LWorkWindow(BoxLayout):
 		self.statusLine.update(rc.g,rc.phi,rc.theta,rc.valX,rc.valY,rc.valZ)
 
 		if rc is None: return
-		if self.circle_view is None: return
+		if self.angle_view is None: return
+		#print('angleview: ',self.angle_view)
 
-		# trigger orientation change with background layouts
-		if self.val_ori != rc.orientation():
-			self.val_ori = rc.orientation()
-			self.circle_view.val_ori = self.val_ori
-
-		#self.circle_view.val_ori = rc.orientation()
+		if self.last_value is not None:
+			if math.fabs(self.last_value.phi-rc.phi) < 0.005: return
+			if math.fabs(self.last_value.theta-rc.theta) < 0.005: return
 
 		ori = rc.orientation()
 		if ori in ['LANDING','FLYING']:
@@ -473,11 +502,13 @@ class LWorkWindow(BoxLayout):
 		elif ori in ['RIGHT']:
 			self.headerLine.title.text = _('Right')
 
-
-		self.angle_view.present(rc)
+		# trigger update on registered clients (angle_views):
+		self.last_value = rc
+		#self.angle_view.present(rc)
 
 	def on_touch_down(self, touch):
 
+		#print ('LApp: on_touch_down')
 		for c in self.children:
 			if c.on_touch_down(touch): return
 
@@ -486,8 +517,14 @@ class LWorkWindow(BoxLayout):
 		if app.sensor_reader is None:
 			# wir rechnen x,y,z anhand der touch pos zurück.
 
-			rad = self.circle_view.get_tacho_radius()
-			cent = self.circle_view.get_tacho_center()
+			try:
+				rad = self.angle_view.bckgnd.get_tacho_radius()
+				cent = self.angle_view.bckgnd.get_tacho_center()
+			except:
+				rad = self.size[0]/3.0
+				if rad>self.size[1]/3.0: rad = self.size[1]/3.0
+				cent = (self.size[0]/2.0,self.size[1]/2.0)
+
 			if rad>0.0:
 				px = (touch.pos[0] - cent[0]) / rad * 45
 				py = (touch.pos[1] - cent[1])  / rad * 45

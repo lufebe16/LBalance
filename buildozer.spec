@@ -4,10 +4,10 @@
 title = LBalance
 
 # (str) Package name
-package.name = ww
+package.name = lbalance
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.lufebe16.level
+package.domain = org.lufebe16
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -49,7 +49,7 @@ requirements = python3,kivy
 presplash.filename = %(source.dir)s/img/img512.png
 
 # (str) Icon of the application
-icon.filename = %(source.dir)s/img/img64.png
+icon.filename = %(source.dir)s/img/img64b.png
 
 # (list) Supported orientations
 # Valid options are: landscape, portrait, portrait-reverse or landscape-reverse

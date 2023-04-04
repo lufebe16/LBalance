@@ -25,7 +25,8 @@ class LLayout(object):
 		self.layout = {
 			"foreground": dv,
 			"background": bg,
-			"statuscolor": sc
+			"statuscolor": sc,
+			"cache": None
 			}
 
 	def background(self):
@@ -37,6 +38,13 @@ class LLayout(object):
 	def statuscolor(self):
 		return self.layout["statuscolor"]
 
+	def cache(self):
+		return self.layout["cache"]
+
+	def set_cache(self,widget):
+		self.layout["cache"] = widget
+
+from kivy.uix.gridlayout import GridLayout
 
 class LLayouts(EventDispatcher):
 	selected = NumericProperty(0)
@@ -59,8 +67,7 @@ class LLayouts(EventDispatcher):
 		self.layouts.append(LLayout(
 			LAngleViewBubble,LCircleViewBubble,[0.0, 0.0, 0.0, 0.0]))
 		self.layouts.append(LLayout(
-			LAngleViewKugel,LCircleViewMini,[0.2, 0.2, 0.2, 1.0]))
-		# test:
+			LAngleViewKugelP,LCircleViewMini,[0.2, 0.2, 0.2, 1.0]))
 		self.layouts.append(LLayout(
 			LAngleViewCube,LCircleViewMini,[0.2, 0.2, 0.2, 1.0]))
 
@@ -68,6 +75,15 @@ class LLayouts(EventDispatcher):
 
 	def current(self):
 		return self.layouts[self.selected]
+
+	def get_widget(self,layout):
+		angle_view = layout.cache()
+		if angle_view is None:
+			angle_view = layout.foreground()
+			circle_view = layout.background()
+			angle_view.set_background(circle_view)
+			layout.set_cache(angle_view)
+		return angle_view
 
 	def next(self):
 		self.selected = (self.selected+1) % len(self.layouts)

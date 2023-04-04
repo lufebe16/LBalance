@@ -2,47 +2,84 @@
 
 import math
 
-from kivy.graphics import *
+from kivy.graphics import Line, Rectangle, Ellipse, Callback, Color
+from kivy.graphics import Fbo, ClearColor, ClearBuffers, InstructionGroup
+from kivy.graphics import PushMatrix, PopMatrix, Scale, Rotate, Translate
 from kivy.graphics.transformation import Matrix
 from kivy.graphics.context_instructions import Transform
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.widget import Widget
 from kivy.properties import NumericProperty, ObjectProperty
 from kivy.event import EventDispatcher
 from kivy.uix.label import Label
 
 from storage import ConfigDir
-from graphics \
-	import \
-		set_color, set_color_range, baloon, triangle, rotated_text, \
-		LFont, raute, welle, color_range_ext, hsva_conv
+from graphics import set_color, set_color_range, baloon, triangle
+from graphics import LFont, raute, welle, color_range_ext, hsva_conv
+from graphics import rotated_text, RotatedText
+
 from koords import normAngle
 
 #=============================================================================
 # Definiert den App Vordergrund
 
-class LAngleView(BoxLayout):
+#class LAngleView(BoxLayout):
+class LAngleView(GridLayout):
 	value = ObjectProperty()
 
 	def __init__(self,**kw):
+		self.cols = 1
+		self.rows = 1
 		super(LAngleView, self).__init__(**kw)
 		self.bkcolor = [0.15, 0.00, 0.3, 1]
+		#self.bkcolor = [0.15, 0.00, 0.0, 1]
 		with self.canvas.before:
-			#Color(0, 0.00, 0.3, 1)   # schwarz mit blau stich
+			Color(0, 0.00, 0.3, 1)   # schwarz mit blau stich
 			#Color(0.15, 0.00, 0.3, 1)   # schwarz mit violett stich
 			set_color(self.bkcolor)
 			self.rect = Rectangle(pos=self.pos, size=self.size)
 
-		self.bind(pos=self.update)
-		self.bind(size=self.update)
+		self.bind(pos=self.update_pos)
+		self.bind(size=self.update_size)
 		self.update_event = None
 		self.bckgnd = None
 		self.val_ori = None
-		self.last_phi = 0.0
-		self.last_theta = 0.0
+		self.last_parent = None
+
+	def on_parent(self, inst, val):
+		if val is not None:
+			try:
+				self.parent.bind(last_value=self.on_present)
+				self.last_parent = self.parent
+			except:
+				try:
+					self.parent.parent.bind(last_value=self.on_present)
+					self.last_parent = self.parent.parent
+				except:
+					pass
+		elif self.last_parent is not None:
+			try:
+				self.last_parent.unbind(last_value=self.on_present)
+				self.last_parent = None
+			except:
+				pass
 
 	def on_value(self, inst, newvalue):
 		print('value changed')
+		pass
+
+	def update_pos(self,*args):
+		Clock.unschedule(self.update_event)
+		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
+
+	def update_size(self,inst,size):
+		Clock.unschedule(self.update_event)
+		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
+		for c in self.children:
+			c.pos = self.pos
+			c.size = self.size
 
 	def update(self,*args):
 		Clock.unschedule(self.update_event)
@@ -57,18 +94,17 @@ class LAngleView(BoxLayout):
 		self.bckgnd = bckgnd
 		self.add_widget(bckgnd)
 
+	def on_present(self, inst, value):
+		#print ('on_present',inst,value)
+		self.present(value)
+
 	def present(self,value):
 		# orientierungsänderung weiterleiten.
 		if self.val_ori != value.orientation():
 			self.val_ori = value.orientation()
 			self.bckgnd.val_ori = self.val_ori
 
-		if math.fabs(self.last_phi-value.phi) < 0.005: return
-		self.last_phi = value.phi
-		if math.fabs(self.last_theta-value.theta) < 0.005: return
-		self.last_theta = value.theta
-
-		# neu value (objectproperty)
+		# neu value (objectproperty) triggers updates
 		self.value = value
 
 		# (alte methode - für kompatibilität vorläufig)
@@ -290,8 +326,8 @@ class LAngleViewFull(LAngleView):
 		xh = radius * math.cos(alf+math.pi) + cx
 		yh = radius * math.sin(alf+math.pi) + cy
 
-		smf = LFont.small()
-		anf = LFont.angle()
+		smf = LFont.small()*radius/300.0
+		anf = LFont.angle()*radius/300.0
 
 		lar = "<|"
 		rar = "|>"
@@ -394,9 +430,13 @@ class LAngleViewAV(LAngleView):
 			self.drawit(value)
 
 	def drawit(self,value):
+		radius = self.bckgnd.get_tacho_radius()
+		circle = self.bckgnd.get_tacho_center()
+		if radius <= 0.0: return
+
 		# Text ausgabe.
 		balance = value.balance()
-		anf = LFont.angle()
+		anf = LFont.angle()*radius/300.0
 		lbx = self.pos[0]+self.size[0]/2.0
 		lby = self.pos[1]+(self.size[1]-self.size[0])/2.0
 		ngl = 0
@@ -409,9 +449,6 @@ class LAngleViewAV(LAngleView):
 
 		# Zeiger Darstellungen.
 		if value.orientation() in ["LANDING","FLYING"]:
-
-			radius = self.bckgnd.get_tacho_radius()
-			circle = self.bckgnd.get_tacho_center()
 
 			x,y = value.xy()
 			x = x*radius/45.0 + circle[0]
@@ -485,18 +522,24 @@ class LAngleViewBA(LAngleView):
 					[0.0,0.0,0.0,0.1])
 
 	def draw(self,value):
+		#print ('object:',self,'draw called')
 		self.canvas.after.clear()
 		with self.canvas.after:
+			ScissorPush(
+				x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
 			self.drawit(value)
+			ScissorPop()
 
 	def drawit(self,value):
 		radius = self.bckgnd.get_tacho_radius()
 		center = self.bckgnd.get_tacho_center()
+		if radius <= 0.0: return
+
 		cx = center[0]
 		cy = center[1]
 		phiR = math.radians(value.phi)
 
-		anf = LFont.small()*1.5
+		anf = LFont.small()*1.5*radius/900.0
 
 		weiss = self.deckweiss
 		horizontcolor = self.horizontcolor
@@ -511,7 +554,8 @@ class LAngleViewBA(LAngleView):
 			Scale(radius,origin=(0,0))
 			set_color(horizontcolor)
 			if width>0.0:
-				Line(points=[0.0,-2.0,0.0,2.0],width=width/max(radius,0.01))
+				wid = width/radius
+				Line(points=[0.0,-2.0,0.0,2.0],width=wid)
 			# Achtung: die Texturfarbe wird mit der aktuellen Farbe gemischt.
 			# Darum Preset auf weiss.
 			set_color(weiss)
@@ -616,42 +660,62 @@ class LAngleViewMini(LAngleView):
 	def __init__(self,**kw):
 		super(LAngleViewMini, self).__init__(**kw)
 
-	def draw(self,value):
-		self.canvas.after.clear()
-		with self.canvas.after:
-			self.drawit(value)
+		self.anschrift = RotatedText()
+		self.translate = None
+		self.rotate =  None
+		self.scale =  None
+		self.line1 =  None
+		self.line2 =  None
+		self.scissor = None
 
-	def drawit(self,value):
-		radius = self.bckgnd.get_tacho_radius()
-		center = self.bckgnd.get_tacho_center()
-		cx = center[0]
-		cy = center[1]
-		anf = LFont.angle()*2.7
-
+	def scene_setup(self,cx,cy,text,value,anf,radius,wid):
 		collin = [0.7,0.7,0.7,1]
 		coltxt = [0.13,0.13,0.13,1]
-		bal = value.balance()
-
-		#self.canvas.after.add(RenderContext(use_parent_projection=False))
-		#print (self.render_context)
-
-		ScissorPush(
+		self.scissor = ScissorPush(
 			x=self.pos[0],y=self.pos[1],width=self.size[0],height=self.size[1])
-
-		rotated_text("{0: 4.1f}\u00b0".format(bal),
-			pos=(cx,cy),angle=value.phi-90.0,anchor=(0,-1),font_size=anf,color=coltxt)
-
-		wid = 11.0
 		PushMatrix()
-		Translate(cx,cy)
-		Rotate(angle=value.phi+90,origin=(0,0))
-		Scale(radius,origin=(0,0))
+		self.translate = Translate(cx,cy)
+		self.rotate = Rotate(angle=value.phi+90,origin=(0,0))
+		self.anschrift.setup(text,
+			pos=(0.0,0.0),angle=180.0,anchor=(0,-1),font_size=anf,color=coltxt)
+		self.scale = Scale(radius,origin=(0,0))
 		set_color(collin)
-		Line(points=[0.0,-0.2,0.0,-1.0],width=wid/max(radius,0.01))
-		Line(points=[-2.0,0.0,2.0,0.0],width=wid/max(radius,0.01))
-
+		self.line1 = Line(points=[0.0,-0.2,0.0,-1.0],width=wid)
+		self.line2 = Line(points=[-2.0,0.0,2.0,0.0],width=wid)
 		PopMatrix()
 		ScissorPop()
+
+	def scene_update(self,cx,cy,text,value,anf,radius,wid):
+		self.scissor.x = self.pos[0]
+		self.scissor.y = self.pos[1]
+		self.scissor.width = self.size[0]
+		self.scissor.height = self.size[1]
+		self.translate.x = cx
+		self.translate.y = cy
+		self.rotate.angle = value.phi+90.0
+		self.scale.x = radius
+		self.scale.y = radius
+		self.line1.width = wid
+		self.line2.width = wid
+		self.anschrift.update(text=text,font_size=anf)
+
+	def on_value(self,inst,value):
+		radius = self.bckgnd.get_tacho_radius()
+		center = self.bckgnd.get_tacho_center()
+		if radius <= 0.0: return
+
+		cx,cy = center
+		anf = LFont.angle()*radius/150.0
+		wid = 11.0*radius/350.0/radius
+		bal = value.balance()
+		text = "{0: 4.1f}\u00b0".format(bal)
+
+		if self.scissor is None:
+			self.canvas.after.clear()
+			with self.canvas.after:
+				self.scene_setup(cx,cy,text,value,anf,radius,wid)
+		else:
+			self.scene_update(cx,cy,text,value,anf,radius,wid)
 
 #=============================================================================
 
@@ -668,55 +732,114 @@ class LAngleViewBubble(LAngleView):
 		self.tex_bubble = Gradient.centered(whtd,lld2,lld)
 		self.value = None
 
+		#fbo:
+		with self.canvas:
+			self.fbo = Fbo()
+			# Wenn benutzt führt zu andern Resultation als
+			# sonst.
+
+		# Test.
+		self.bubble_trans = None
+		self.bubble_scale = None
+		self.bubble_ellps = None
+		self.grid_trans = None
+		self.grid_scale = None
+		self.grid_circle0 = None
+		self.grid_Line1 = None
+		self.grid_Line2 = None
+		self.grid_Line3 = None
+		self.grid_Line4 = None
+		# Das geht so nicht. Wir haben 2 unterschiedl. scenarien:
+		# bubble/grid vs. baubbl/frame. Das bedingt, dass beim Umschalten
+		# graphik instruktionen geziehlt entfernt werden. Es gibt aber
+		# keine graphik funktion die das kann (ausser alles löschen).
+
+		# Hier kommt noch eine Idee: wir könnten alle (bubble,grid und
+		# frame, sowie texte an anfang generieren und dann je nach update
+		# Teile mit move nach z grösser 1 ausblende was nicht nötig.
+	'''
+	# Versuch: das könnte so funktionieren.
+	class Bubble(object):
+		def __init__(self,x,y,radius,scale,start=0,end=360,tex=None):
+			PushMatrix()
+			self.trans = Translate(x,y)
+			self.scale = Scale(radius*scale,origin=(0,0))
+			set_color([1,1,1,1])
+			self.ellps = Ellipse(
+					pos=(-1,-1),size=(2,2),
+					texture=tex,
+					angle_start=start,angle_end=end)
+			PopMatrix()
+
+		def update(self,x,y,radius,scale,start=0,end=360):
+			self.trans.x = x
+			self.trans.y = y
+			self.scale.x = radius*scale
+			self.scale.y = radius*scale
+			self.ellps.angle_start = start
+			self.ellps.angle_end = end
+	'''
+
 	# die Luftblase
 	def bubble(self,x,y,radius,scale,start=0,end=360):
 		PushMatrix()
-		Translate(x,y)
-		Scale(radius*scale,origin=(0,0))
+		self.bubble_trans = Translate(x,y)
+		self.bubble_scale = Scale(radius*scale,origin=(0,0))
 		set_color([1,1,1,1])
-		Ellipse(pos=(-1,-1),size=(2,2),texture=self.tex_bubble,
+		self.bubble_ellps = Ellipse(pos=(-1,-1),size=(2,2),texture=self.tex_bubble,
 									angle_start=start,angle_end=end)
 		PopMatrix()
 
 	# gitter im kreis
 	def grid(self,x,y,radius,scale,lwidth=1.0):
 		PushMatrix()
-		Translate(x,y)
-		Scale(radius,origin=(0,0))
+		self.grid_trans = Translate(x,y)
 		set_color([0,0,0,1])
-		Line(circle=(0,0,scale),width=lwidth)
-		Line(points=(scale,0,1,0),width=lwidth/3.0)
-		Line(points=(-scale,0,-1,0),width=lwidth/3.0)
-		Line(points=(0,scale,0,1),width=lwidth/3.0)
-		Line(points=(0,-scale,0,-1),width=lwidth/3.0)
+		llwidth = lwidth/scale
+
+		circle0 = (0,0,scale)
+		points1 = [1,0,scale,0]
+		points2 = [-1,0,-scale,0]
+		points3 = [0,1,0,scale]
+		points4 = [0,-1,0,-scale]
+
+		self.grid_scale = Scale(radius,origin=(0,0))
+		self.grid_circle0 = Line(circle=circle0,width=lwidth)
+		self.grid_line1 = Line(points=points1,width=lwidth/3.0)
+		self.grid_line2 = Line(points=points2,width=lwidth/3.0)
+		self.grid_line3 = Line(points=points3,width=lwidth/3.0)
+		self.grid_line4 = Line(points=points4,width=lwidth/3.0)
 		PopMatrix()
 
 	# gitterstäbe in den balken
 	def frame(self,x,y,radius,scale,lwidth=1.0,turn=False):
+		width = lwidth/scale
 		PushMatrix()
 		Translate(x,y)
 		if turn:
 			Rotate(angle=90,origin=(0,0))
-		Scale(radius,origin=(0,0))
+		Scale(radius*scale,origin=(0,0))
 		set_color([0,0,0,1])
-		Line(points=(scale,scale,scale,-scale),width=lwidth/3.0)
-		Line(points=(-scale,scale,-scale,-scale),width=lwidth/3.0)
+		Line(points=(1.0,1.0,1.0,-1.0),width=width/3.0)
+		Line(points=(-1.0,1.0,-1.0,-1.0),width=width/3.0)
 		PopMatrix()
 
-	def textbox(self,value,x,y,angle=0,anchor=(0,0),apos=0,asel=0):
+	def textbox(self,value,x,y,angle=0,anchor=(0,0),apos=0,asel=0,radius=300.0):
 		grad = "\u00b0"
 		arrow = ["\u25b2","\u25b6","\u25bc","\u25c0"]
 		# Anm: DejaVuSans hat diese Zeichen, Roboto nicht.
+		fsiz = LFont.middle()*1.3*radius/300.0
 
 		rotated_text(
-			"88888"+grad,
+			#"88.8"+grad+"8",
+			"888888",
 			pos=(x,y),
 			angle=angle,
 			#font_name = "RobotoMono-Regular.ttf",
 			font_name = "DejaVuSans.ttf",
-			font_size=LFont.middle()*1.3,
+			font_size=fsiz,
 			anchor=anchor,
-			color=[0.1,0.1,0.1,1],
+			color=[0.15,0.15,0.15,1],
 			bgnd=True,
 			bcolor=[0,0,0,1])
 
@@ -732,97 +855,120 @@ class LAngleViewBubble(LAngleView):
 			angle=angle,
 			#font_name = "RobotoMono-Regular.ttf",
 			font_name = "DejaVuSans.ttf",
-			font_size=LFont.middle()*1.3,
+			font_size=fsiz,
 			anchor=anchor,
 			color=[0.0,1.0,0.05,1])
 
-	def draw(self,value):
-		self.canvas.after.clear()
-		with self.canvas.after:
-			self.drawit(value)
+	def scene_flat(self,value,x,y,cx,cy,radius,scale):
+		if self.val_ori in ['LANDING','FLYING']:
+			#wid = 3.0/max(radius,0.01)
+			wid = 3.0/300.0
+			bx = cx + (x-cx)*(1.0-scale)
+			by = cy + (y-cy)*(1.0-scale)
+			self.bubble(bx,by,radius,scale)
+			self.grid(cx,cy,radius,scale,lwidth=wid)
 
-	def drawit(self,value):
+			if self.size[1] > self.size[0]:
+				bx = self.pos[0] + self.size[0]*.5
+				by = (self.pos[1] + (cy-radius))/2
+				self.textbox(value.roll(), bx,by,anchor=(-1.2,0),asel=1,apos=0,radius=radius)
+				self.textbox(value.pitch(), bx,by,anchor=(1.2,0),asel=0,apos=1,radius=radius)
+			else:
+				by = self.pos[1] + self.size[1]*.5
+				bx = (self.pos[0] + self.size[0] + (cx+radius))/2
+				self.textbox(-value.roll(), bx,by,anchor=(1.2,0),asel=0,apos=1,angle=90,radius=radius)
+				self.textbox(value.pitch(), bx,by,anchor=(-1.2,0),asel=1,apos=0,angle=90,radius=radius)
+
+	def scene_up(self,value,x,y,cx,cy,radius,scale):
+		#wid = 3.0/max(radius,0.01)
+		wid = 3.0/300.0
+		if self.val_ori in ['BOTTOM']:
+			bx = cx + (x-cx)*(1.0-scale)
+			by = cy + scale*radius
+			self.bubble(bx,by,radius,scale,start=90,end=270)
+			self.frame(cx,cy,radius,scale,lwidth=wid)
+		elif self.val_ori in ['TOP']:
+			bx = cx + (x-cx)*(1.0-scale)
+			by = cy - scale*radius
+			self.bubble(bx,by,radius,scale,start=270,end=450)
+			self.frame(cx,cy,radius,scale,lwidth=wid)
+		elif self.val_ori in ['LEFT']:
+			bx = cx + scale*radius
+			by = cy + (y-cy)*(1.0-scale)
+			self.bubble(bx,by,radius,scale,start=180,end=360)
+			self.frame(cx,cy,radius,scale,lwidth=wid,turn=True)
+		elif self.val_ori in ['RIGHT']:
+			bx = cx - scale*radius
+			by = cy + (y-cy)*(1.0-scale)
+			self.bubble(bx,by,radius,scale,start=0,end=180)
+			self.frame(cx,cy,radius,scale,lwidth=wid,turn=True)
+
+		if self.val_ori in ['BOTTOM']:
+			bx = self.pos[0] + self.size[0]*.5
+			by = (self.pos[1] + (cy-radius*scale))/2
+			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,radius=radius)
+		elif self.val_ori in ['TOP']:
+			bx = self.pos[0] + self.size[0]*.5
+			by = (self.pos[1] + self.size[1] + (cy+radius*scale))/2
+			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=180,radius=radius)
+		elif self.val_ori in ['LEFT']:
+			by = self.pos[1] + self.size[1]*.5
+			bx = (self.pos[0] + (cx-radius*scale))/2
+			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=-90,radius=radius)
+		elif self.val_ori in ['RIGHT']:
+			by = self.pos[1] + self.size[1]*.5
+			bx = (self.pos[0] + self.size[0] + (cx+radius*scale))/2
+			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=90,radius=radius)
+
+	def draw(self,value):
+		#print ('object:',self,'draw called')
 		self.value = value
 		radius = self.bckgnd.get_meter_length()/2.0
 		center = self.bckgnd.get_tacho_center()
 		scale = self.bckgnd.get_meter_aspect()
 		cx = center[0]
 		cy = center[1]
-		#anf = LFont.angle()*2.7
 
 		x,y = value.xy()
 		x = x*radius/45.0 + cx
 		y = y*radius/45.0 + cy
 
-		# bubble und grid.
-		if self.val_ori in ['LANDING','FLYING']:
-			bx = cx + (x-cx)*(1.0-scale)
-			by = cy + (y-cy)*(1.0-scale)
-			self.bubble(bx,by,radius,scale)
-			self.grid(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01))
-		elif self.val_ori in ['BOTTOM']:
-			bx = cx + (x-cx)*(1.0-scale)
-			by = cy + scale*radius
-			self.bubble(bx,by,radius,scale,start=90,end=270)
-			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01))
-		elif self.val_ori in ['TOP']:
-			bx = cx + (x-cx)*(1.0-scale)
-			by = cy - scale*radius
-			self.bubble(bx,by,radius,scale,start=270,end=450)
-			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01))
-		elif self.val_ori in ['LEFT']:
-			bx = cx + scale*radius
-			by = cy + (y-cy)*(1.0-scale)
-			self.bubble(bx,by,radius,scale,start=180,end=360)
-			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01),turn=True)
-		elif self.val_ori in ['RIGHT']:
-			bx = cx - scale*radius
-			by = cy + (y-cy)*(1.0-scale)
-			self.bubble(bx,by,radius,scale,start=0,end=180)
-			self.frame(cx,cy,radius,scale,lwidth=3.0/max(radius,0.01),turn=True)
+		if 0:
+			# TBD: aufgebaute graphik aktualisieren.
+			return
 
-		# anschriften.
-		if self.val_ori in ['LANDING','FLYING']:
-			if self.size[1] > self.size[0]:
-				bx = self.pos[0] + self.size[0]*.5
-				by = (self.pos[1] + (cy-radius))/2
-				self.textbox(value.roll(), bx,by,anchor=(-1.2,0),asel=1,apos=0)
-				self.textbox(value.pitch(), bx,by,anchor=(1.2,0),asel=0,apos=1)
+		# Graphik (löschen und) neu aufbauen:
+
+		#self.fbo.size = self.size
+		#with self.fbo:
+		#	ClearColor(0, 0, 0, 0)
+		#	ClearBuffers()
+
+		self.canvas.after.clear()
+		with self.canvas.after:
+			if self.val_ori in ['LANDING','FLYING']:
+				self.scene_flat(value,x,y,cx,cy,radius,scale)
 			else:
-				by = self.pos[1] + self.size[1]*.5
-				bx = (self.pos[0] + self.size[0] + (cx+radius))/2
-				self.textbox(-value.roll(), bx,by,anchor=(1.2,0),asel=0,apos=1,angle=90)
-				self.textbox(value.pitch(), bx,by,anchor=(-1.2,0),asel=1,apos=0,angle=90)
-		elif self.val_ori in ['BOTTOM']:
-			bx = self.pos[0] + self.size[0]*.5
-			by = (self.pos[1] + (cy-radius*scale))/2
-			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1)
-		elif self.val_ori in ['TOP']:
-			bx = self.pos[0] + self.size[0]*.5
-			by = (self.pos[1] + self.size[1] + (cy+radius*scale))/2
-			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=180)
-		elif self.val_ori in ['LEFT']:
-			by = self.pos[1] + self.size[1]*.5
-			bx = (self.pos[0] + (cx-radius*scale))/2
-			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=-90)
-		elif self.val_ori in ['RIGHT']:
-			by = self.pos[1] + self.size[1]*.5
-			bx = (self.pos[0] + self.size[0] + (cx+radius*scale))/2
-			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=90)
+				self.scene_up(value,x,y,cx,cy,radius,scale)
+
+		#self.canvas.after.clear()
+		#with self.canvas.after:
+		#	print(self.fbo.texture)
+		#	Color(1,1,1,1)
+		#	Rectangle(texture=self.fbo.texture,pos=(0,0),size=self.size)
 
 #=============================================================================
 # Kugel Drahtmodel.
-
-import time
 
 class LAngleViewKugel(LAngleView):
 	def __init__(self,**kw):
 		super(LAngleViewKugel, self).__init__(**kw)
 		self.l3d = None
-		self.last_time = 0.0
-		self.avg = 0
 		self.light = True
 		self.rotation = None
+		self.rottext = None
+		self.translation = None
+		self.scale = None
 
 	def Line3d(self,x1,y1,x2,y2,width=1.0):
 		dx = x2-x1
@@ -850,9 +996,7 @@ class LAngleViewKugel(LAngleView):
 		self.l3d.add(PopMatrix())
 
 	def Circle3d(self,circle=(0.0,0.0,1.0),width=1.0):
-		n = 48
-		#cx = circle[0]
-		#cy = circle[1]
+		n = 36
 		r = circle[2]
 		for i in range(0,n):
 			ii = float(i)
@@ -877,6 +1021,8 @@ class LAngleViewKugel(LAngleView):
 			if self.light:
 				if i == 2:
 					self.Circle3d(circle=(0,0,c),width=width)
+				elif i == 5:
+					self.Circle3d(circle=(0,0,c),width=width)
 				else:
 					self.l3d.add(Line(circle=(0,0,c),width=1.0))
 			else:
@@ -888,6 +1034,8 @@ class LAngleViewKugel(LAngleView):
 			self.l3d.add(Translate(0,0,-s))
 			if self.light:
 				if i == 2:
+					self.Circle3d(circle=(0,0,c),width=width)
+				elif i == 5:
 					self.Circle3d(circle=(0,0,c),width=width)
 				else:
 					self.l3d.add(Line(circle=(0,0,c),width=1.0))
@@ -902,7 +1050,7 @@ class LAngleViewKugel(LAngleView):
 		self.l3d.add(Rotate(angle=-90.0,axis=(1,0,0),origin=(0,0,0)))
 		self.l3d.add(Translate(0.0,1.0,0.0))
 		self.l3d.add(Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0)))
-		self.l3d.add(set_color([0.6,0.0,0.0,1]))
+		self.l3d.add(set_color([0.7,0.0,0.0,0.7]))
 		self.l3d.add(Ellipse(pos=(pos,pos),size=(size,size)))
 		self.l3d.add(PopMatrix())
 
@@ -910,7 +1058,7 @@ class LAngleViewKugel(LAngleView):
 		self.l3d.add(Rotate(angle=-90.0,axis=(1,0,0),origin=(0,0,0)))
 		self.l3d.add(Translate(0.0,-1.0,0.0))
 		self.l3d.add(Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0)))
-		self.l3d.add(set_color([0.0,0.0,0.6,1]))
+		self.l3d.add(set_color([0.0,0.0,0.7,0.7]))
 		self.l3d.add(Ellipse(pos=(pos,pos),size=(size,size)))
 		self.l3d.add(PopMatrix())
 
@@ -931,82 +1079,100 @@ class LAngleViewKugel(LAngleView):
 					self.Circle3d(circle=(0,0,1),width=width)
 		self.l3d.add(PopMatrix())
 
+	def anschrift(self,value,cx,cy,radius):
+		if self.rottext is None:
+			self.rottext = RotatedText()
+
+		anf = LFont.angle()*1.3*radius/300.0
+		coltxt = self.textcolor(value.balance())
+		self.rottext.setup(
+			text="{0: 4.1f}\u00b0".format(value.balance()),
+			pos=(cx,cy),
+			angle=value.phi-90.0,
+			anchor=(0,0),
+			font_size=anf,
+			color=coltxt) #,
+			#bgnd = True,
+			#bcolor = [0,0,0.8,0.3])
+
 	def loadScene(self,canvas,width=1.0):
 		if self.l3d is None:
 			self.l3d = InstructionGroup()
 			self.meridiane(width=width)
 			self.breiten(width=width)
-			self.pole(size=0.03)
+			self.pole(size=0.05)
 		if self.l3d is not None:
 			canvas.add(self.l3d)
 
 	def kugel(self,value,x,y,radius,width=1.0):
 		PushMatrix()
-		Translate(x,y,0)
-		Scale(radius*0.92,radius*0.92,0,origin=(0,0,0))
+		self.translation = Translate(x,y,0)
+		self.scale = Scale(radius*0.92,radius*0.92,0,origin=(0,0,0))
+		self.anschrift(value,0.0,0.0,1.0)
 
 		if value is not None:
 			theta = value.theta
 			#if theta > 90.0: theta = (180 - theta)
 			self.rotation = Rotate(angle=theta,axis=(-value.pitch(),value.roll(),0),origin=(0,0,0))
-			#Rotate(angle=theta,axis=(self.value.pitch(),-self.value.roll(),0),origin=(0,0,0))
 
 		self.loadScene(self.canvas.after,width=width)
 		PopMatrix()
 
-	def draw(self,value):
-
-		# TBD: das ginge so, aber auch den Text updaten.
-		'''
-		if self.rotation is not None:
-			self.rotation.axis=(-value.pitch(),value.roll(),0)
-			self.rotation.angle = value.theta
-			return
-		'''
-
-		self.canvas.after.clear()
-		with self.canvas.after:
-			self.drawit(value)
-
-	def drawit(self,value):
-		if value is None: return
-		radius = self.bckgnd.get_tacho_radius()
-		center = self.bckgnd.get_tacho_center()
-		if radius is None: return
-
-		#scale = self.bckgnd.get_meter_aspect()
-		#scale = 0.18
-		cx = center[0]
-		cy = center[1]
-		anf = LFont.angle()*1.8
-
-		y = value.pitch()
-		x = value.roll()
-		x = x*radius/90.0 + cx
-		y = y*radius/90.0 + cy
-
-		# Winkelanzeige
-		bal = value.balance()
+	def textcolor(self,bal):
 		p = math.fabs(bal)*0.2
 		cr = hsva_conv([0.0,0.8,0.5,1])
 		#co = hsva_conv([0.18,0.8,0.7,1])
 		co = hsva_conv([0.09,0.8,0.6,1])
 		cg = hsva_conv([0.32,0.8,0.4,1])
 		coltxt = color_range_ext(cg,cg,cg,co,co,co,co,co,co,co,co,co,co,cr,cr,param=p)
-		rotated_text("{0: 4.1f}\u00b0".format(bal),
-			pos=(cx,cy),angle=value.phi-90.0,anchor=(0,0),font_size=anf,color=coltxt)
+		return coltxt
 
-		# Welt Grid anzeigen
+	def on_value(self, inst, value):
+		if value is None: return
+		radius = self.bckgnd.get_tacho_radius()
+		center = self.bckgnd.get_tacho_center()
+		if radius is None: return
+
+		cx = center[0]
+		cy = center[1]
+		y = value.pitch()
+		x = value.roll()
+		x = x*radius/90.0 + cx
+		y = y*radius/90.0 + cy
+
 		size = self.size[1]/2.0
 		if self.size[0] > self.size[1]: size = self.size[0]/2.0
+		anf = LFont.angle()*1.3*radius/300.0
 
-		#st = time.time()
-		set_color([0.1,0.1,0.1,1])
-		if radius > 0.0:
-			self.kugel(value,cx,cy,size,width=1.5/size)
-		#dt = st-self.last_time
-		#print ('delta:',dt)
-		#self.last_time = st
+		# Update
+		if self.translation is not None:
+			self.translation.x = cx
+			self.translation.y = cy
+			self.scale.x = size*0.92
+			self.scale.y = size*0.92
+
+		if self.rotation is not None:
+			self.rotation.axis=(-value.pitch(),value.roll(),0)
+			self.rotation.angle = value.theta
+			self.rottext.update(
+				"{0: 4.1f}\u00b0".format(value.balance()),
+				angle=value.phi-90.0,
+				color=self.textcolor(value.balance()))
+
+			return
+
+		# Setup
+		self.canvas.after.clear()
+		with self.canvas.after:
+
+			# Welt Grid anzeigen
+			wid = size*radius/300.0
+
+			set_color([0.1,0.1,0.1,1])
+			if radius > 0.0:
+				#self.kugel(value,cx,cy,size,width=1.5/size)
+				self.kugel(value,cx,cy,size,width=0.003)
+				#self.kugel(value,cx,cy,500.0,width=0.005)
 
 #=============================================================================
 # Kugel Drahtmodel mit Perspektive.
@@ -1016,10 +1182,10 @@ from kivy.graphics.opengl import glEnable, glDisable, GL_DEPTH_TEST
 class LAngleViewKugelP(LAngleViewKugel):
 	def __init__(self,**kw):
 		super(LAngleViewKugelP, self).__init__(**kw)
+		self.rectangle = None
 		with self.canvas:
 			self.fbo = Fbo(with_depthbuffer=True)
 			self.fbo.shader.source = 'glsl/default.glsl'
-			#self.fbo.shader.source = 'glsl/my.glsl'
 
 	def setup_gl_context(self, *args):
 		glEnable(GL_DEPTH_TEST)
@@ -1028,11 +1194,19 @@ class LAngleViewKugelP(LAngleViewKugel):
 		glDisable(GL_DEPTH_TEST)
 
 	def kugel(self,value,x,y,radius,width=1.0):
-		self.fbo.size = self.size
+		# Ist unabh. von absoluten Grössen. Die
+		# Skalierung erfolgt bei der Platzierung der Textur. Einzig
+		# das Aspektverhältnis muss aus dem aktuellen Kontext ermittelt
+		# werden.
+		# (um des Aspekt anpassbar zu machen könnte ev. statt dessen eine
+		# Skalierung eingebaut werden, welche updatebar ist).
 		zscale = 1.0
 		sx = self.size[0]/2
 		sy = self.size[1]/2
-		matvc = Matrix().view_clip(-sx,sx,-sy,sy,5*zscale,6*zscale,0)
+		sx = sx/sy  # = aspect ratio
+		sy = 1.0
+		radius = 1.3
+		matvc = Matrix().view_clip(-sx,sx,-sy,sy,2.9*zscale,5.1*zscale,1)
 		self.fbo['projection_mat'] = matvc
 		print (matvc)
 
@@ -1042,20 +1216,33 @@ class LAngleViewKugelP(LAngleViewKugel):
 			Callback(self.setup_gl_context)
 
 			PushMatrix()
-			Translate(0,0,-6*zscale)
+			Translate(0,0,-4*zscale)
 			Scale(radius*0.92,radius*0.92,zscale,origin=(0,0,0))
 
 			theta = value.theta
-			Rotate(angle=theta,axis=(-value.pitch(),value.roll(),0),origin=(0,0,0))
+			self.rotation = Rotate(angle=theta,axis=(-value.pitch(),value.roll(),0),origin=(0,0,0))
+			self.loadScene(self.fbo,width=0.003)
+			PopMatrix()
 
-			self.loadScene(self.fbo,width=width)
+			PushMatrix()
+			Translate(0,0,-4*zscale)
+			Translate(0,0,1)
+			self.anschrift(value,0.0,0.0,radius)
 			PopMatrix()
 
 			Callback(self.reset_gl_context,reset_buffer=True)
 
 		Color(1,1,1,1)
-		Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
+		self.rectangle = Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
 
+	def on_value(self, inst, value):
+		if self.rectangle is not None:
+			self.rectangle.texture = self.fbo.texture
+			self.rectangle.pos = self.pos
+			self.rectangle.size = self.size
+			radius = self.bckgnd.get_tacho_radius()
+			center = self.bckgnd.get_tacho_center()
+		super().on_value(inst,value)
 
 #=============================================================================
 
@@ -1183,6 +1370,8 @@ class LAngleViewCube(LAngleView):
 			self.rotation.axis = (-value.pitch(),value.roll(),0)
 			self.rotation.angle = value.theta
 			self.fborect.texture = self.fbo.texture
+			self.fborect.pos = self.pos
+			self.fborect.size = self.size
 			return
 
 		# Scene ist noch unbekannt oder ging verloren -> neu erzeugen
