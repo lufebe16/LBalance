@@ -126,7 +126,7 @@ class CalaButton(LabelButton):
 		super(CalaButton,self).on_touch_up(touch)
 		if self.collide_point(touch.x,touch.y):
 			print ('on_touch_up cala')
-			if (touch.time_end-touch.time_start) > 1.0:
+			if (touch.time_end-touch.time_start) > 0.5:
 				CalaStore.reset()
 		return False
 
@@ -142,13 +142,31 @@ class LayoutButton(LabelButton):
 		print ('on_press layout')
 		#self.color_save = self.color
 		#self.color = [1,0,0,1]
-		Layouts.next()
+		#Layouts.next()
 		return False
 
 	def on_release(self):
 		#self.source = 'atlas://data/images/defaulttheme/checkbox_off'
 		print ('on_release layout')
-		#self.color = self.color_save
+		#Layouts.next()
+		return False
+
+	def on_touch_down(self, touch):
+		if self.collide_point(touch.x,touch.y):
+			print ('on_touch_down Layout')
+		#super().on_touch_down(touch)
+		return False
+
+	def on_touch_up(self, touch):
+		if self.collide_point(touch.x,touch.y):
+			print ('on_touch_up Layout')
+			if (touch.time_end-touch.time_start) > 0.5:
+				print ('on_touch_up Layout - long press')
+				Layouts.set_menu()
+				return True
+			else:
+				Layouts.next()
+		#super().on_touch_up(touch)
 		return False
 
 #=============================================================================
@@ -187,7 +205,7 @@ class LStatusLine(BoxLayout,LBase):
 		Layouts.bind(selected=self.update_rect)
 
 	def update_rect(self,*args):
-		self.background_color = Layouts.current().statuscolor()
+		self.background_color = Layouts.layout().statuscolor()
 		self.canvas.before.clear()
 		with self.canvas.before:
 			set_color(self.background_color)
@@ -237,7 +255,7 @@ class LHeaderLine(BoxLayout,LBase):
 		Layouts.bind(selected=self.update_rect)
 
 	def update_rect(self,*args):
-		self.background_color = Layouts.current().statuscolor()
+		self.background_color = Layouts.layout().statuscolor()
 		self.canvas.before.clear()
 		with self.canvas.before:
 			set_color(self.background_color)
@@ -390,12 +408,10 @@ class LWorkWindow(BoxLayout):
 
 		self.ori = None
 		self.calaResetEvent = None
+		self.stack_layout = None
 
 		# object property init
 		self.last_value = None
-
-		self.mode = 0
-		self.stack_layout = None
 
 		#print(Window.render_context)
 		#print(Window.render_context['projection_mat'])
@@ -408,11 +424,10 @@ class LWorkWindow(BoxLayout):
 		self.rect.pos = self.pos
 		self.rect.size = self.size
 
-		if self.stack_layout:
-			#for c in self.stack_layout.children:
-			#	c.size_hint=(None,None)
+		if self.stack_layout is not None:
 			self.stack_layout.clear_widgets()
 			self.stack_layout = None
+
 		self.clear_widgets()
 		if self.size[0]>=self.size[1]:
 			smin = self.size[1]
@@ -442,32 +457,19 @@ class LWorkWindow(BoxLayout):
 		LFont.set_screen_size(smin)
 		self.add_widget(self.headerLine)
 
-		self.mode = 0
-		#r = random.random()
-		#if  r > 0.4: self.mode = 2
-		#if  r > 0.8: self.mode = 1
-		if self.mode == 0:
+		menu = Layouts.get_menu()
+		if menu:
+			self.stack_layout = StackLayout()
+			self.angle_view = self.stack_layout
+			self.add_widget(self.angle_view)
+			for i in range(0,Layouts.count()):
+				w = Layouts.get_widget(i)
+				w.size_hint=(0.33,0.33)
+				self.angle_view.add_widget(w)
+		else:
 			self.angle_view = Layouts.get_widget(Layouts.current())
 			self.angle_view.size_hint=(1.0,1.0)
 			self.add_widget(self.angle_view)
-		elif self.mode == 1:
-			# test (alle miteinander):
-			self.stack_layout = StackLayout()
-			self.angle_view = self.stack_layout
-			self.add_widget(self.angle_view)
-			for l in Layouts.layouts:
-				w = Layouts.get_widget(l)
-				w.size_hint=(0.33,0.33)
-				#w.width = self.stack_layout.size[0]
-				#w.height = self.stack_layout.size[1]
-				self.angle_view.add_widget(w)
-		elif self.mode == 2:
-			self.stack_layout = StackLayout()
-			self.angle_view = self.stack_layout
-			self.add_widget(self.angle_view)
-			w = Layouts.get_widget(Layouts.current())
-			w.size_hint=(0.5,0.5)
-			self.angle_view.add_widget(w)
 
 		self.add_widget(self.statusLine)
 
@@ -509,13 +511,16 @@ class LWorkWindow(BoxLayout):
 	def on_touch_down(self, touch):
 
 		#print ('LApp: on_touch_down')
-		for c in self.children:
-			if c.on_touch_down(touch): return
 
 		# desktop Variante:
 		app = Cache.get('LAppCache', 'mainApp')
 		if app.sensor_reader is None:
 			# wir rechnen x,y,z anhand der touch pos zurück.
+
+			# nur double tap weitergeben.
+			if touch.is_double_tap:
+				for c in self.children:
+					c.on_touch_down(touch)
 
 			try:
 				rad = self.angle_view.bckgnd.get_tacho_radius()
@@ -533,6 +538,11 @@ class LWorkWindow(BoxLayout):
 
 				x,y,z = kart(9.81,phi,math.radians(theta))
 				self.refresh(x,y,z)
+
+		# Android variante.
+		else:
+			for c in self.children:
+				if c.on_touch_down(touch): return
 
 		return False
 

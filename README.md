@@ -31,7 +31,8 @@ To reset calibration long tap onto the 'calibration' button.
 
 ## Layouts
 
-To enumerate layouts tap to the button 'layouts' in the top bar.
+To enumerate layouts tap to the button 'layouts' in the top bar. A long tap
+displays an overview of all available layouts.
 
 ## Angles display
 
@@ -41,4 +42,4 @@ in the bottom bar.
 # Screenshots
 
 ![Screenshot](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png)
-![Screenshot](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png)
+![Screenshot](fastlane/metadata/android/en-US/images/phoneScreenshots/4.png)

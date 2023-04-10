@@ -47,6 +47,7 @@ class LAngleView(GridLayout):
 		self.bckgnd = None
 		self.val_ori = None
 		self.last_parent = None
+		self.layout_selector = None
 
 	def on_parent(self, inst, val):
 		if val is not None:
@@ -115,10 +116,9 @@ class LAngleView(GridLayout):
 		pass
 
 	def on_touch_down(self, touch):
-		# double tap
-		if touch.is_double_tap:
-			for c in self.children:
-				c.on_touch_down(touch)
+		if self.collide_point(touch.x,touch.y):
+			if self.layout_selector is not None:
+				self.layout_selector()
 		return False
 
 	def balance_label(self,balance,txtangle,color,anchor=(0,0)):
@@ -795,7 +795,6 @@ class LAngleViewBubble(LAngleView):
 		PushMatrix()
 		self.grid_trans = Translate(x,y)
 		set_color([0,0,0,1])
-		llwidth = lwidth/scale
 
 		circle0 = (0,0,scale)
 		points1 = [1,0,scale,0]
@@ -966,6 +965,7 @@ class LAngleViewKugel(LAngleView):
 		self.l3d = None
 		self.light = True
 		self.rotation = None
+		self.rotaphi = None
 		self.rottext = None
 		self.translation = None
 		self.scale = None
@@ -1068,10 +1068,12 @@ class LAngleViewKugel(LAngleView):
 		self.l3d.add(PushMatrix())
 		self.l3d.add(Rotate(angle=90,axis=(0,1,0),origin=(0,0,0)))
 		self.Circle3d(circle=(0,0,1),width=width)
+		#self.ellipse(1)
 		for i in range(1,12):
 			self.l3d.add(Rotate(angle=15,axis=(1,0,0),origin=(0,0,0)))
 			if i==6:
 				self.Circle3d(circle=(0,0,1),width=width)
+				#self.ellipse(1)
 			else:
 				if self.light:
 					self.l3d.add(Line(circle=(0,0,1),width=1.0))
@@ -1091,15 +1093,13 @@ class LAngleViewKugel(LAngleView):
 			angle=value.phi-90.0,
 			anchor=(0,0),
 			font_size=anf,
-			color=coltxt) #,
-			#bgnd = True,
-			#bcolor = [0,0,0.8,0.3])
+			color=coltxt)
 
 	def loadScene(self,canvas,width=1.0):
 		if self.l3d is None:
 			self.l3d = InstructionGroup()
-			self.meridiane(width=width)
 			self.breiten(width=width)
+			self.meridiane(width=width)
 			self.pole(size=0.05)
 		if self.l3d is not None:
 			canvas.add(self.l3d)
@@ -1114,6 +1114,7 @@ class LAngleViewKugel(LAngleView):
 			theta = value.theta
 			#if theta > 90.0: theta = (180 - theta)
 			self.rotation = Rotate(angle=theta,axis=(-value.pitch(),value.roll(),0),origin=(0,0,0))
+			self.rotaphi = Rotate(angle=value.phi,axis=(0,0,1),origin=(0,0,0))
 
 		self.loadScene(self.canvas.after,width=width)
 		PopMatrix()
@@ -1142,18 +1143,21 @@ class LAngleViewKugel(LAngleView):
 
 		size = self.size[1]/2.0
 		if self.size[0] > self.size[1]: size = self.size[0]/2.0
-		anf = LFont.angle()*1.3*radius/300.0
+		#anf = LFont.angle()*1.3*radius/300.0
 
 		# Update
 		if self.translation is not None:
+			# nur kugel
 			self.translation.x = cx
 			self.translation.y = cy
 			self.scale.x = size*0.92
 			self.scale.y = size*0.92
 
 		if self.rotation is not None:
+			# kugel und kugelP
 			self.rotation.axis=(-value.pitch(),value.roll(),0)
 			self.rotation.angle = value.theta
+			self.rotaphi.angle = value.phi
 			self.rottext.update(
 				"{0: 4.1f}\u00b0".format(value.balance()),
 				angle=value.phi-90.0,
@@ -1161,12 +1165,12 @@ class LAngleViewKugel(LAngleView):
 
 			return
 
-		# Setup
+		# Setup (kugel und kugelP)
 		self.canvas.after.clear()
 		with self.canvas.after:
 
 			# Welt Grid anzeigen
-			wid = size*radius/300.0
+			#wid = size*radius/300.0
 
 			set_color([0.1,0.1,0.1,1])
 			if radius > 0.0:
@@ -1194,19 +1198,13 @@ class LAngleViewKugelP(LAngleViewKugel):
 		glDisable(GL_DEPTH_TEST)
 
 	def kugel(self,value,x,y,radius,width=1.0):
-		# Ist unabh. von absoluten Grössen. Die
-		# Skalierung erfolgt bei der Platzierung der Textur. Einzig
-		# das Aspektverhältnis muss aus dem aktuellen Kontext ermittelt
-		# werden.
-		# (um des Aspekt anpassbar zu machen könnte ev. statt dessen eine
-		# Skalierung eingebaut werden, welche updatebar ist).
+		# Fbo ist unabh. von absoluten Grössen. Die Skalierung erfolgt bei
+		# der Platzierung der Textur, sodass die Kugel immer eine Kugel
+		# bleibt. Wir verwenden die default buffer grösse (1024x1024)
 		zscale = 1.0
-		sx = self.size[0]/2
-		sy = self.size[1]/2
-		sx = sx/sy  # = aspect ratio
-		sy = 1.0
 		radius = 1.3
-		matvc = Matrix().view_clip(-sx,sx,-sy,sy,2.9*zscale,5.1*zscale,1)
+		#matvc = Matrix().view_clip(-sx,sx,-sy,sy,2.9*zscale,5.1*zscale,1)
+		matvc = Matrix().view_clip(-1.0,1.0,-1.0,1.0,2.9*zscale,5.1*zscale,1)
 		self.fbo['projection_mat'] = matvc
 		print (matvc)
 
@@ -1221,27 +1219,54 @@ class LAngleViewKugelP(LAngleViewKugel):
 
 			theta = value.theta
 			self.rotation = Rotate(angle=theta,axis=(-value.pitch(),value.roll(),0),origin=(0,0,0))
+			#self.loadScene(self.fbo,width=0.003)
+			self.rotaphi = Rotate(angle=value.phi,axis=(0,0,1),origin=(0,0,0))
 			self.loadScene(self.fbo,width=0.003)
 			PopMatrix()
 
 			PushMatrix()
 			Translate(0,0,-4*zscale)
-			Translate(0,0,1)
+			Translate(0,0,1)	# text zuoberst auf der scene
 			self.anschrift(value,0.0,0.0,radius)
 			PopMatrix()
 
 			Callback(self.reset_gl_context,reset_buffer=True)
 
+		if self.size[1] > self.size[0]:
+			sx = self.size[0]/self.size[1]
+			sy = 1.0
+		else:
+			sx = 1.0
+			sy = self.size[1]/self.size[0]
+
+		PushMatrix()
 		Color(1,1,1,1)
+		self.scale = Scale(1.0/sx,1.0/sy,zscale,origin=(x,y,0))
 		self.rectangle = Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
+		PopMatrix()
 
 	def on_value(self, inst, value):
+		if value is None: return
+		center = self.bckgnd.get_tacho_center()
+		cx,cy = center
+		if self.size[1] > self.size[0]:
+			sx = self.size[0]/self.size[1]
+			sy = 1.0
+		else:
+			sx = 1.0
+			sy = self.size[1]/self.size[0]
+
 		if self.rectangle is not None:
+			origin = (cx,cy,0)
+			self.scale.x = 1.0/sx
+			self.scale.y = 1.0/sy
+			self.scale.origin = origin
 			self.rectangle.texture = self.fbo.texture
 			self.rectangle.pos = self.pos
 			self.rectangle.size = self.size
-			radius = self.bckgnd.get_tacho_radius()
+			#radius = self.bckgnd.get_tacho_radius()
 			center = self.bckgnd.get_tacho_center()
+
 		super().on_value(inst,value)
 
 #=============================================================================
@@ -1255,6 +1280,7 @@ class LAngleViewCube(LAngleView):
 
 		self.fborect = None
 		self.rotation = None
+		self.fboscale = None
 		self.rectstex = []
 		self.rectsbal = []
 
@@ -1361,55 +1387,38 @@ class LAngleViewCube(LAngleView):
 
 	def on_value(self, inst, value):
 		super(LAngleViewCube,self).on_value(inst,value)
-		#print ('on_value2')
+
 		self.textex = self.mytext(value.theta)
 		self.texbal = self.mytext(value.bala)
+		# ANM: object properties -> update über events.
+
+		cx,cy = self.bckgnd.get_tacho_center()
+		if self.size[1] > self.size[0]:
+			sx = self.size[1]/self.size[0]
+			sy = 1.0
+		else:
+			sx = 1.0
+			sy = self.size[0]/self.size[1]
 
 		# Scene ist bereits konstruiert -> Update.
 		if self.rotation is not None:
 			self.rotation.axis = (-value.pitch(),value.roll(),0)
 			self.rotation.angle = value.theta
+			self.fboscale.x = sx
+			self.fboscale.y = sy
+			self.fboscale.origin = (cx,cy,0)
 			self.fborect.texture = self.fbo.texture
 			self.fborect.pos = self.pos
 			self.fborect.size = self.size
 			return
 
-		# Scene ist noch unbekannt oder ging verloren -> neu erzeugen
-		if value is None: return
-		radius = self.bckgnd.get_tacho_radius()
-		if radius <= 0.0: return
-
-		radius = self.bckgnd.get_tacho_radius()
-		center = self.bckgnd.get_tacho_center()
-		cx = center[0]
-		cy = center[1]
-
-		y = value.pitch()
-		x = value.roll()
-		x = x*radius/90.0 + cx
-		y = y*radius/90.0 + cy
-
-		# jedesmal neu aufsetzen:
-		# -> bleibt immer flüssig, führt längerfristig aber zum Absturz
-		# unter der app. Und zwar SDLThread mit signal 11 (SIGSEGV)
-		# = storage vialotion error. (Vermutl. Speicherleck und -überlauf
-		# in Folge).
-		# .. jedoch, wenn es in der klasse definiert und wiederverwendet
-		# wird, beginnt die scene, anfangs flüssig, mit der Zeit
-		# unangenehm zu ruckeln.
-		# -> Lösung:
-		# Die scene sollte nur einmal aufgesetzt werden. Die veränderlichen
-		# Befehle können in der klass gespeichert und upgedatet werden.
-		# Das funktioniert nun so !
-
 		# Hier definieren wir die perspektive. Wir skalieren die Szene
-		# mit 1, d.h zw. -1 und +1, stellen sie dann 4 z-Einheiten weg
+		# in z mit 1, d.h zw. -1 und +1, stellen sie dann 4 z-Einheiten weg
 		# von der Kamera und setzen vorderes und hinteres clipping auf
 		# 3 (near) resp. 5 (far) z-einheiten.
+
 		zscale = 1.0
-		sx = self.size[0]/2
-		sy = self.size[1]/2
-		matvc = Matrix().view_clip(-sx,sx,-sy,sy,3*zscale,5*zscale,1)
+		matvc = Matrix().view_clip(-1.0,1.0,-1.0,1.0,3*zscale,5*zscale,1)
 		self.fbo['projection_mat'] = matvc
 		print (matvc)
 
@@ -1422,7 +1431,7 @@ class LAngleViewCube(LAngleView):
 			# die folgenden 2 Befehle müssen mit der view-clip matrix
 			# abgeglichen sein - sonst sieht man ganz schnell nichts mehr!
 			Transform().translate(0,0,-4*zscale)
-			Scale(1.9*radius,1.9*radius,zscale,origin=(0,0,0))
+			Scale(1.2,1.2,zscale,origin=(0,0,0))
 
 			self.rotation = Rotate(
 				angle=value.theta,
@@ -1438,8 +1447,11 @@ class LAngleViewCube(LAngleView):
 
 		self.canvas.after.clear()
 		with self.canvas.after:
+			PushMatrix()
 			Color(1,1,1,1)
+			self.fboscale = Scale(sx,sy,zscale,origin=(cx,cy,0))
 			self.fborect = Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
+			PopMatrix()
 
 
 #=============================================================================
