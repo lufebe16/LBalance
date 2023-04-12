@@ -1,7 +1,14 @@
-LBalance ist eine Winkelmesser oder Wasserwaage App.
+LBalance ist eine App welche die Beschleunigungssensoren des Geräts
+benutzt um graphische Objekte auf dem Bildschirm zu bewegen. LBalance
+kann auch als Winkelmesser oder Wasserwaage verwendet werden.
 
-Die App zeigt Winkel zur Horizontalen an. Das Gerät kann so als Wasserwaage
-benutzt werden. Es wurden verschiedene graphische Darstellungen
-implementiert, welche per Knopf umschaltbar sind. Das Programm wurde zum
-grössten Teil in Python geschrieben. Insbesondere die Graphikfunktionen,
-welche über das Kivy Framwork erreichbar sind wurden augelotet.
+Es wurden verschiedene graphische Darstellungen implementiert. Neben
+Eigenerfindungen sind auch Layouts implementiert, welche von der
+Graphik bekannter ähnlicher Apps inspiriert sind.
+
+Die verschiedenen Layouts können vom Benutzer umgeschaltet werden. Auch
+existiert eine Übersichtsanzeige zur Direktwahl.
+
+Die Kalibrierung der Winkelanzeige folgt dem Schema einfacher Apps
+dieser Gattung und erfolgt für jede Hauptausrichtung des Geräts
+separat.

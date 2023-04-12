@@ -36,7 +36,7 @@ displays an overview of all available layouts.
 
 ## Angles display
 
-Angles (physical convention polar coords) an sensor values are displayed
+Angles (physical convention polar coords) and sensor values are displayed
 in the bottom bar.
 
 # Screenshots

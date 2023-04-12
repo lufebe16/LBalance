@@ -9,6 +9,7 @@ android/bin/*
 android/tmp/*
 android/*.apk
 *.sublime*
+*.geany
 build
 apk
 mk

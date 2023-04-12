@@ -1,1 +1,1 @@
-LBalance is eine weitere Winkelmesser App. Für einmal in Python realisiert.
+LBalance is eine Winkelmesser App mit wählbaren Layouts.
