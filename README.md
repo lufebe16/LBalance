@@ -1,12 +1,16 @@
-
-
 # LBalance angle measurement app
 
 This is another angle measuring app for android. It is written
 in Python using the Kivy framework. It offers a number of different
 graphic layouts at users choice.
 
-The app ist open source as of the GNU General Public License (see LICENSE)
+The app is open source as of the GNU General Public License (see LICENSE)
+
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
+     alt="Get it on F-Droid"
+     height="80">](https://f-droid.org/packages/org.lufebe16.lbalance/)
+
+Or download the latest APK from the [Releases Section](https://github.com/lufebe16/LBalance/releases/latest).
 
 # Build
 
