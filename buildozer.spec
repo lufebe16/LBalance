@@ -27,7 +27,7 @@ source.exclude_dirs = bin, __pycache__, xml, research, fastlane, helpers
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
 #source.exclude_patterns = license,images/*/*.jpg
-source.exclude_patterns = ENV*, ANV*, ww*.json, README.*
+source.exclude_patterns = VENV*, ENV*, ANV*, ww*.json, README.*
 
 # (str) Application versioning (method 1)
 version = 1.0
@@ -105,7 +105,7 @@ fullscreen = 0
 # android.features = android.hardware.sensor.accelerometer
 
 # (int) Target Android API, should be as high as possible.
-android.api = 32
+android.api = 34
 
 # (int) Minimum API your APK / AAB will support.
 #android.minapi = 21
@@ -342,7 +342,7 @@ android.release_artifact = apk
 
 # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
 #p4a.commit = HEAD
-p4a.commit = v2023.02.10
+p4a.commit = v2024.01.21
 
 # (str) python-for-android git clone directory (if empty, it will be automatically cloned from github)
 #p4a.source_dir =
@@ -463,6 +463,23 @@ warn_on_root = 1
 #[app@demo]
 #title = My Application (demo)
 #
+# Profile for local test builds.
+
+[app@test]
+# (str) Title of your application
+title = LBalance.test
+# (str) Package name
+package.name = lbalance.test
+
+# Profile for Fdroid builds.
+
+[app@fdroid]
+android.skip_update = = True
+android.accept_sdk_license = False
+
+[buildozer@fdroid]
+warn_on_root = 0
+
 #[app:source.exclude_patterns@demo]
 #images/hd/*
 #

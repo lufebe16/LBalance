@@ -1,0 +1,5 @@
+#!/bin/sh
+
+BUILDOZER_VERSION='3ebc09e885457db4747e67a1250c2aea1ca7a046'
+P4A_VERSION=$(cat buildozer.spec | grep -e "^p4a[.]commit" | sed -E "s/^.* ?= ?([v0-9].*\.[0-9].*\.[0-9].*).*/\1/")
+ANDROID_API=$(cat buildozer.spec | grep -e "^android[.]api" | sed -E "s/^.*([0-9].).*/\1/")

@@ -2,7 +2,6 @@ syntax: glob
 
 *.pyc
 *.py.*
-*.apk
 .git/*
 .buildozer/*
 android/bin/*
@@ -11,11 +10,13 @@ android/*.apk
 *.sublime*
 *.geany
 build
-apk
 mk
+ENV
 ENV*/*
+VENV*/*
 ARM*/*
 bin/*
+apk/*
 __pycache__/
 test.*
 spick*.*

@@ -1,0 +1,15 @@
+appdirs
+attrs
+build
+-e git+https://github.com/kivy/buildozer.git@3ebc09e885457db4747e67a1250c2aea1ca7a046#egg=buildozer
+colorama
+configobj
+Cython==3.0.11
+Jinja2
+Kivy==2.3.0
+pep517
+permutation
+pip
+setuptools
+toml
+wheel
