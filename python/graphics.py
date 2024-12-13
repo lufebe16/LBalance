@@ -244,7 +244,7 @@ def baloon(lcolor=[0.1,0.1,0.1,1],lwidth=1.0,lscale=0.9,triangle=True,line=False
 	Ellipse(pos=(-1,-1),size=(2,2))
 	PushMatrix()
 	set_color(lcolor)
-	Scale(lscale,origin=(0,0))
+	Scale(x=lscale,y=lscale,origin=(0,0))
 	Line(circle=(0,0,1.0),width=lwidth)
 	if triangle:
 		ex = math.cos(math.radians(30))

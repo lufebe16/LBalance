@@ -68,7 +68,7 @@ class LAngleView(GridLayout):
 				pass
 
 	def on_value(self, inst, newvalue):
-		print('value changed')
+		print('value changed - base class')
 		pass
 
 	def update_pos(self,*args):
@@ -113,6 +113,7 @@ class LAngleView(GridLayout):
 
 	def draw(self,value):
 		# Implementation in derived classes.
+		print("AngleView draw - base class")
 		pass
 
 	def on_touch_down(self, touch):
@@ -139,6 +140,7 @@ class LAngleViewSimple(LAngleView):
 
 	def draw(self,value):
 		self.canvas.after.clear()
+
 		with self.canvas.after:
 
 			radius = self.bckgnd.get_tacho_radius()
@@ -173,7 +175,8 @@ class LAngleViewSimple(LAngleView):
 			PushMatrix()
 			Translate(x,y)
 			Rotate(angle=value.phi,origin=(0,0))
-			Scale(2.0*radius/9.0,origin=(0,0))
+			rs = 2.0*radius/9.0
+			Scale(x=rs,y=rs,origin=(0,0))
 			baloon()
 			PopMatrix()
 
@@ -236,7 +239,8 @@ class LAngleViewTriangle(LAngleView):
 		PushMatrix()
 		Translate(x,y)
 		Rotate(angle=value.phi,origin=(0,0))
-		Scale(radius/9.0,origin=(0,0))
+		rs = radius/9.0
+		Scale(x=rs,y=rs,origin=(0,0))
 		baloon(triangle=False)
 		PopMatrix()
 
@@ -294,7 +298,8 @@ class LAngleViewCurved(LAngleView):
 		PushMatrix()
 		Translate(x,y)
 		Rotate(angle=value.phi,origin=(0,0))
-		Scale(radius/9.0,origin=(0,0))
+		rs = radius/9.0
+		Scale(x=rs,y=rs,origin=(0,0))
 		baloon(triangle=False)
 		PopMatrix()
 
@@ -354,9 +359,9 @@ class LAngleViewFull(LAngleView):
 
 		# transparenter Drieickspfeil
 		PushMatrix()
-		Translate(cx,cy)
+		Translate(x=cx,y=cy)
 		Rotate(angle=value.phi,origin=(0,0))
-		Scale(radius,origin=(0,0))
+		Scale(x=radius,y=radius,origin=(0,0))
 		triangle(self.trianglecolor)
 		PopMatrix()
 
@@ -379,8 +384,9 @@ class LAngleViewFull(LAngleView):
 		# Kreuzungspunkt der linien
 		set_color([0.7, 0.7, 0.7, 1])   # hellgrau
 		PushMatrix()
-		Translate(x,y)
-		Scale(radius/60.0,origin=(0,0))
+		Translate(x=x,y=y)
+		r = radius/60.0
+		Scale(x=r,y=r,origin=(0,0))
 		baloon(lscale=0.0)
 		PopMatrix()
 
@@ -389,9 +395,10 @@ class LAngleViewFull(LAngleView):
 		good = 5.0
 		set_color_range(
 			[0.5,1.0,0.0,0.6],[1.0,0.6,0.0,0.7],math.fabs(value.balance())/good)
-		Translate(cx,cy)
+		Translate(x=cx,y=cy)
 		Rotate(angle=value.phi,origin=(0,0))
-		Scale(radius/9.0,origin=(0,0))
+		r = radius/9.0
+		Scale(x=r,y=r,origin=(0,0))
 		baloon()
 		PopMatrix()
 
@@ -465,7 +472,8 @@ class LAngleViewAV(LAngleView):
 			PushMatrix()
 			Translate(x,y)
 			Rotate(angle=value.phi,origin=(0,0))
-			Scale(radius/13.0,origin=(0,0))
+			r = radius/13.0
+			Scale(x=r,y=r,origin=(0,0))
 			self.pointer()
 			PopMatrix()
 
@@ -480,10 +488,10 @@ class LAngleViewAV(LAngleView):
 			PushMatrix()
 			Translate(x,y)
 			if value.orientation() in ["LEFT","RIGHT"]:
-				Scale(length/8.4,length/17,1,origin=(0,0))
+				Scale(x=length/8.4,y=length/17,z=1,origin=(0,0))
 				Rotate(angle=90,origin=(0,0))
 			else:
-				Scale(length/17,length/8.4,1,origin=(0,0))
+				Scale(x=length/17,y=length/8.4,z=1,origin=(0,0))
 			self.pointer(line=True)
 			PopMatrix()
 
@@ -551,7 +559,7 @@ class LAngleViewBA(LAngleView):
 			PushMatrix()
 			Translate(x,y)
 			Rotate(angle=value.phi,origin=(0,0))
-			Scale(radius,origin=(0,0))
+			Scale(x=radius,y=radius,origin=(0,0))
 			set_color(horizontcolor)
 			if width>0.0:
 				wid = width/radius
@@ -601,7 +609,7 @@ class LAngleViewBA(LAngleView):
 		PushMatrix()
 		Translate(cx,cy)
 		Rotate(angle=value.phi+90,origin=(0,0))
-		Scale(radius,origin=(0,0))
+		Scale(x=radius,y=radius,origin=(0,0))
 		Line(points=[0.0,0.27,0.0,1.0],width=width/max(radius,0.01))
 		Line(points=[-2.0,0.0,27.0,0.0],width=width/max(radius,0.01))
 		PopMatrix()
@@ -615,7 +623,7 @@ class LAngleViewBA(LAngleView):
 		set_color(weiss)
 		PushMatrix()
 		Translate(cx,cy)
-		Scale(radius,origin=(0,0))
+		Scale(x=radius,y=radius,origin=(0,0))
 		Line(points=[-2.0,0.0,2.0,0.0],width=width/max(radius,0.01))
 		PopMatrix()
 
@@ -626,7 +634,7 @@ class LAngleViewBA(LAngleView):
 		scaleC = 0.12*radius
 		PushMatrix()
 		Translate(cx,cy)
-		Scale(scaleC,origin=(0,0))
+		Scale(x=scaleC,y=scaleC,origin=(0,0))
 		Line(circle=(0,0,1.1,90,180-angleC),width=width/max(scaleC,0.01))
 		Line(circle=(0,0,1.02,180-angleC,270),width=width/max(scaleC,0.01))
 		PopMatrix()
@@ -678,7 +686,7 @@ class LAngleViewMini(LAngleView):
 		self.rotate = Rotate(angle=value.phi+90,origin=(0,0))
 		self.anschrift.setup(text,
 			pos=(0.0,0.0),angle=180.0,anchor=(0,-1),font_size=anf,color=coltxt)
-		self.scale = Scale(radius,origin=(0,0))
+		self.scale = Scale(x=radius,y=radius,origin=(0,0))
 		set_color(collin)
 		self.line1 = Line(points=[0.0,-0.2,0.0,-1.0],width=wid)
 		self.line2 = Line(points=[-2.0,0.0,2.0,0.0],width=wid)
@@ -763,7 +771,7 @@ class LAngleViewBubble(LAngleView):
 		def __init__(self,x,y,radius,scale,start=0,end=360,tex=None):
 			PushMatrix()
 			self.trans = Translate(x,y)
-			self.scale = Scale(radius*scale,origin=(0,0))
+			self.scale = Scale(x=radius*scale,y=radius*scale,origin=(0,0))
 			set_color([1,1,1,1])
 			self.ellps = Ellipse(
 					pos=(-1,-1),size=(2,2),
@@ -784,7 +792,8 @@ class LAngleViewBubble(LAngleView):
 	def bubble(self,x,y,radius,scale,start=0,end=360):
 		PushMatrix()
 		self.bubble_trans = Translate(x,y)
-		self.bubble_scale = Scale(radius*scale,origin=(0,0))
+		sr = radius*scale
+		self.bubble_scale = Scale(x=sr,y=sr,origin=(0,0))
 		set_color([1,1,1,1])
 		self.bubble_ellps = Ellipse(pos=(-1,-1),size=(2,2),texture=self.tex_bubble,
 									angle_start=start,angle_end=end)
@@ -802,7 +811,7 @@ class LAngleViewBubble(LAngleView):
 		points3 = [0,1,0,scale]
 		points4 = [0,-1,0,-scale]
 
-		self.grid_scale = Scale(radius,origin=(0,0))
+		self.grid_scale = Scale(x=radius,y=radius,origin=(0,0))
 		self.grid_circle0 = Line(circle=circle0,width=lwidth)
 		self.grid_line1 = Line(points=points1,width=lwidth/3.0)
 		self.grid_line2 = Line(points=points2,width=lwidth/3.0)
@@ -817,7 +826,8 @@ class LAngleViewBubble(LAngleView):
 		Translate(x,y)
 		if turn:
 			Rotate(angle=90,origin=(0,0))
-		Scale(radius*scale,origin=(0,0))
+		sr = scale*radius
+		Scale(x=sr,y=sr,origin=(0,0))
 		set_color([0,0,0,1])
 		Line(points=(1.0,1.0,1.0,-1.0),width=width/3.0)
 		Line(points=(-1.0,1.0,-1.0,-1.0),width=width/3.0)
@@ -985,7 +995,7 @@ class LAngleViewKugel(LAngleView):
 		self.l3d.add(PushMatrix())
 		self.l3d.add(Translate(x1,y1,0))
 		self.l3d.add(Rotate(angle=math.degrees(math.atan2(dy,dx)),axis=(0,0,1),origin=(0,0,0)))
-		self.l3d.add(Scale(l,1,1,origin=(0,0,0)))
+		self.l3d.add(Scale(x=l,y=1,z=1,origin=(0,0,0)))
 		self.l3d.add(Line(points=(0.0,0.0,1.0,0.0),width=w))
 		self.l3d.add(Rotate(angle=90.0,axis=(1,0,0),origin=(0,0,0)))
 		self.l3d.add(Line(points=(0.0,0.0,1.0,0.0),width=w))
@@ -1107,7 +1117,7 @@ class LAngleViewKugel(LAngleView):
 	def kugel(self,value,x,y,radius,width=1.0):
 		PushMatrix()
 		self.translation = Translate(x,y,0)
-		self.scale = Scale(radius*0.92,radius*0.92,0,origin=(0,0,0))
+		self.scale = Scale(x=radius*0.92,y=radius*0.92,z=0,origin=(0,0,0))
 		self.anschrift(value,0.0,0.0,1.0)
 
 		if value is not None:
@@ -1215,7 +1225,7 @@ class LAngleViewKugelP(LAngleViewKugel):
 
 			PushMatrix()
 			Translate(0,0,-4*zscale)
-			Scale(radius*0.92,radius*0.92,zscale,origin=(0,0,0))
+			Scale(x=radius*0.92,y=radius*0.92,z=zscale,origin=(0,0,0))
 
 			theta = value.theta
 			self.rotation = Rotate(angle=theta,axis=(-value.pitch(),value.roll(),0),origin=(0,0,0))
@@ -1241,7 +1251,7 @@ class LAngleViewKugelP(LAngleViewKugel):
 
 		PushMatrix()
 		Color(1,1,1,1)
-		self.scale = Scale(1.0/sx,1.0/sy,zscale,origin=(x,y,0))
+		self.scale = Scale(x=1.0/sx,y=1.0/sy,z=zscale,origin=(x,y,0))
 		self.rectangle = Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
 		PopMatrix()
 
@@ -1431,7 +1441,7 @@ class LAngleViewCube(LAngleView):
 			# die folgenden 2 Befehle müssen mit der view-clip matrix
 			# abgeglichen sein - sonst sieht man ganz schnell nichts mehr!
 			Transform().translate(0,0,-4*zscale)
-			Scale(1.2,1.2,zscale,origin=(0,0,0))
+			Scale(x=1.2,y=1.2,z=zscale,origin=(0,0,0))
 
 			self.rotation = Rotate(
 				angle=value.theta,
@@ -1449,7 +1459,7 @@ class LAngleViewCube(LAngleView):
 		with self.canvas.after:
 			PushMatrix()
 			Color(1,1,1,1)
-			self.fboscale = Scale(sx,sy,zscale,origin=(cx,cy,0))
+			self.fboscale = Scale(x=sx,y=sy,z=zscale,origin=(cx,cy,0))
 			self.fborect = Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
 			PopMatrix()
 

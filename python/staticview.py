@@ -161,6 +161,7 @@ class LCircleViewFineWithScale(LCircleView):
 		return 0
 
 	def draw(self):
+
 		angle = None
 		self.radius = 0.9*self.msiz/2
 		fs = LFont.small()*self.radius/300.0
@@ -285,22 +286,23 @@ class LCircleViewAV(LCircleView):
 		w = self.w
 		h = self.h
 
+		h90 = h/90.0
 		PushMatrix()
 		Translate(2*d+w+h/2,2*d+h+w/2.0)
-		Scale(h/90.0,origin=(0,0))
+		Scale(x=h90,y=h90,origin=(0,0))
 		self.calcSkala()
 		PopMatrix()
 
 		PushMatrix()
 		Translate(d+w/2,d+h/2.0)
 		Rotate(angle=90.0,origin=(0,0))
-		Scale(h/90.0,origin=(0,0))
+		Scale(x=h90,y=h90,origin=(0,0))
 		self.calcSkala()
 		PopMatrix()
 
 		PushMatrix()
 		Translate(2*d+w+h/2,d+h/2.0)
-		Scale(h/90.0,origin=(0,0))
+		Scale(x=h90,y=h90,origin=(0,0))
 		self.calcCircle()
 		PopMatrix()
 
@@ -336,14 +338,15 @@ class LCircleViewAV(LCircleView):
 			c[0]-m+t,c[1]-m+t),
 			width=2.0*t)
 
+		sf = 2.0*m/self.n
 		PushMatrix()
 		if (self.size[0]<self.size[1]):
 			Translate(self.pos[0],self.pos[1]+(self.size[1]/2.0-m))
-			Scale(2.0*m/self.n,origin=(0,0))
+			Scale(x=sf,y=sf,origin=(0,0))
 			self.picture(colorc,color2,color1)
 		else:
 			Translate(self.pos[0]+self.size[0]/2.0+m,self.pos[1])
-			Scale(2.0*m/self.n,origin=(0,0))
+			Scale(x=sf,y=sf,origin=(0,0))
 			Rotate(angle=90.0,origin=(0,0))
 			self.picture(colorc,color1,color2)
 		PopMatrix()
@@ -577,13 +580,13 @@ class LCircleViewBubble(LCircleView):
 			# curcle.
 			PushMatrix()
 			Translate(c[0],c[1])
-			Scale(r,origin=(0,0))
+			Scale(x=r,y=r,origin=(0,0))
 			hourglass(lwidth=5.0/r)
 			PopMatrix()
 		else:
 			PushMatrix()
 			Translate(c[0],c[1])
-			Scale(r,origin=(0,0))
+			Scale(x=r,y=r,origin=(0,0))
 			bubblebar(lwidth=1.0/r)
 			PopMatrix()
 
