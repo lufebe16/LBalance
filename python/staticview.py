@@ -29,15 +29,15 @@ class LCircleView(Widget):
 
 	def update_pos(self, inst, pos):
 		Clock.unschedule(self.update_event)
-		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
+		self.update_event = Clock.schedule_once(self.update_scheduled, 0.0)
 
 	def update_size(self, inst, size):
 		Clock.unschedule(self.update_event)
-		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
+		self.update_event = Clock.schedule_once(self.update_scheduled, 0.0)
 
 	def update(self, *args):
 		Clock.unschedule(self.update_event)
-		self.update_event = Clock.schedule_once(self.update_scheduled, 0.2)
+		self.update_event = Clock.schedule_once(self.update_scheduled, 0.0)
 
 	def update_scheduled(self, *args):
 		self.msiz = msiz = min(self.size[0],self.size[1])

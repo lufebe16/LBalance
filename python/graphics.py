@@ -5,7 +5,10 @@ from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from kivy.core.text import LabelBase
 from kivy.uix.label import Label
-from kivy.graphics import *
+from kivy.uix.widget import Widget
+from kivy.graphics import Color, PushMatrix, PopMatrix, InstructionGroup
+from kivy.graphics import Translate, Rotate, Scale
+from kivy.graphics import Rectangle, RoundedRectangle, Mesh, Ellipse, Line
 from kivy.graphics.tesselator import Tesselator
 from kivy.properties import NumericProperty
 from kivy.event import EventDispatcher
@@ -17,91 +20,25 @@ class RotatedText(object):
 	def __init__(self,**kwargs):
 
 		# saved settings
-		self.rt_angle = None
-		self.rt_pos = None
+		self.rt_angle = 0.0
+		self.rt_pos = (0.0,0.0)
 		self.rt_text = "<empty>"
-		self.rt_font_size = 16
+		self.rt_font_size = 90
 		self.rt_font_name = None
 		self.rt_anchor = (0,0)
 		self.rt_color = [1,1,1,1]
-		self.rt_bgnd = False
-		self.rt_bcolor = [0,0,0,1]
+		self.rt_bcolor = [0,0,0,0]
 
 		# saved drawing instructions:
+		self.translation = None
 		self.rotation = None
 		self.textrect = None
 		self.bgndrect = None
 		self.bgndcolor = None
 
-		#varianten
-		self.mode = 1
-
-	def setup(self,text=None,pos=None,angle=None,
+	def __eval(self,text=None,pos=None,angle=None,
 			font_size=None,font_name=None,anchor=None,color=None,
-			bgnd=None,bcolor=None):
-
-		if angle is None: angle = 0.0
-		self.rt_angle = angle
-		if pos is None: pos=(0.0,0.0)
-		self.rt_pos = pos
-		if text is None: text = "<empty>"
-		self.rt_text = text
-		if font_size is None: font_size = 90
-		self.rt_font_size = font_size
-		self.rt_font_name = font_name
-		if anchor is None: anchor = (0,0)
-		self.rt_anchor = anchor
-		if color is None: color = [1,1,1,1]
-		self.rt_color = color
-		if bgnd is None: bgnd = False
-		self.rt_bgnd = bgnd
-		if bcolor is None: bcolor = [0,0,0,1]
-		self.rt_bcolor = bcolor
-
-		l = Label(pos=(-200,-200))
-		l.text = self.rt_text
-		if self.mode==0:
-			l.font_size = self.rt_font_size
-		elif self.mode == 1:
-			l.font_size = 90
-		l.color = self.rt_color
-		if self.rt_font_name is not None:
-			l.font_name = self.rt_font_name
-		l.texture_update()
-		t = l.texture
-		if self.mode==1:
-			size = (self.rt_font_size*t.size[0]/t.size[1],self.rt_font_size)
-
-		x = self.rt_pos[0]
-		y = self.rt_pos[1]
-		if self.mode == 0:
-			xo = t.size[0] * (self.rt_anchor[0]-1) / 2.0
-			yo = t.size[1] * (self.rt_anchor[1]-1) / 2.0
-		elif self.mode == 1:
-			xo = size[0] * (self.rt_anchor[0]-1) / 2.0
-			yo = size[1] * (self.rt_anchor[1]-1) / 2.0
-
-		PushMatrix()
-		self.rotation = Rotate(angle=self.rt_angle,origin=(x,y))
-		if self.rt_bgnd:
-			Translate(0,0,-0.001)
-			self.bgndcolor = set_color(self.rt_bcolor)
-			self.bgndrect = Rectangle(pos=(x+xo,y+yo),size=t.size)
-			Translate(0,0,0.001)
-		set_color([1,1,1,1])
-		if self.mode == 0:
-			self.textrect = Rectangle(texture=t,pos=(x+xo,y+yo),size=t.size)
-		elif self.mode == 1:
-			self.textrect = Rectangle(texture=t,pos=(x+xo,y+yo),size=size)
-		PopMatrix()
-		l.text = ""
-
-	def update(self,text=None,pos=None,angle=None,
-			font_size=None,font_name=None,anchor=None,color=None,
-			bgnd=None,bcolor=None):
-
-		if self.rotation is None:
-			return
+			bcolor=None):
 
 		if angle is not None: self.rt_angle = angle
 		if pos is not None: self.rt_pos = pos
@@ -109,46 +46,81 @@ class RotatedText(object):
 		if font_size is not None: self.rt_font_size = font_size
 		if anchor is not None: self.rt_anchor = anchor
 		if color is not None: self.rt_color = color
-		if bgnd is not None: self.rt_bgnd = bgnd
 		if bcolor is not None: self.rt_bcolor = bcolor
 
 		l = Label(pos=(-200,-200))
 		l.text = self.rt_text
-		if self.mode == 0:
-			l.font_size = self.rt_font_size
-		elif self.mode == 1:
-			l.font_size = 90
+		l.font_size = self.rt_font_size
 		l.color = self.rt_color
 		if self.rt_font_name is not None:
 			l.font_name = self.rt_font_name
 		l.texture_update()
 		t = l.texture
-		if self.mode == 1:
-			size = (self.rt_font_size*t.size[0]/t.size[1],self.rt_font_size)
-
 		x = self.rt_pos[0]
 		y = self.rt_pos[1]
-		if self.mode == 0:
-			xo = t.size[0] * (self.rt_anchor[0]-1) / 2.0
-			yo = t.size[1] * (self.rt_anchor[1]-1) / 2.0
-		elif self.mode == 1:
-			xo = size[0] * (self.rt_anchor[0]-1) / 2.0
-			yo = size[1] * (self.rt_anchor[1]-1) / 2.0
-
-		self.rotation.angle = self.rt_angle
-		if self.rt_bgnd and self.bgndrect is not None:
-			self.bgndcolor.r = self.rt_bcolor[0]
-			self.bgndcolor.g = self.rt_bcolor[1]
-			self.bgndcolor.b = self.rt_bcolor[2]
-			self.bgndcolor.a = self.rt_bcolor[3]
-			self.bgndrect.pos = (x+xo,y+yo)
-		self.textrect.texture = t
-		self.textrect.pos = (x+xo,y+yo)
-		if self.mode == 0:
-			self.textrect.size = t.size
-		else:
-			self.textrect.size = size
+		z = 0
+		try: z = self.rt_pos[2]
+		except: pass
+		xo = t.size[0] * (self.rt_anchor[0]-1) / 2.0
+		yo = t.size[1] * (self.rt_anchor[1]-1) / 2.0
 		l.text = ""
+
+		#print(t,x,y,z,xo,yo)
+		return (t,x,y,z,xo,yo)
+
+
+	def setup(self,canvas,text=None,pos=None,angle=None,
+			font_size=None,font_name=None,anchor=None,color=None,
+			bcolor=None):
+
+		t,x,y,z,xo,yo = self.__eval(text=text,pos=pos,angle=angle,
+			font_size=font_size,font_name=font_name,anchor=anchor,
+			color=color,bcolor=bcolor)
+
+		with canvas:
+			PushMatrix()
+			self.translation = Translate(x=x,y=y,z=z)
+			self.rotation = Rotate(angle=self.rt_angle,origin=(0,0))
+			Translate(0,0,-0.001)
+			self.bgndcolor = set_color(self.rt_bcolor)
+			#self.bgndrect = Rectangle(pos=(xo,yo),size=t.size)
+			self.bgndrect = RoundedRectangle(pos=(xo,yo),size=t.size,segments=20,radius=[t.size[1],])
+			Translate(0,0,0.001)
+			set_color([1,1,1,1])
+			self.textrect = Rectangle(texture=t,pos=(xo,yo),size=t.size)
+			PopMatrix()
+
+	def update(self,text=None,pos=None,angle=None,
+			font_size=None,font_name=None,anchor=None,color=None,
+			bcolor=None):
+
+		if self.translation is None:
+			return
+
+		t,x,y,z,xo,yo = self.__eval(text=text,pos=pos,angle=angle,
+			font_size=font_size,font_name=font_name,anchor=anchor,
+			color=color,bcolor=bcolor)
+
+		self.translation.xyz = (x,y,z)
+		self.rotation.angle = self.rt_angle
+		self.bgndcolor.rgba = self.rt_bcolor
+		self.bgndrect.pos = (xo,yo)
+		self.bgndrect.size = t.size
+		self.textrect.texture = t
+		self.textrect.pos = (xo,yo)
+		self.textrect.size = t.size
+
+
+class RotatedTextWidget(Widget,RotatedText):
+	def __init__(self,**kwargs):
+		super(RotatedTextWidget,self).__init__(**kwargs)
+
+	def setup(self,text=None,pos=None,angle=None,
+			font_size=None,font_name=None,anchor=None,color=None,
+			bcolor=None):
+
+		super().setup(self.canvas,
+			text,pos,angle,font_size,font_name,anchor,color,bcolor)
 
 
 def rotated_text(text="<empty>",pos=(0,0),angle=0,

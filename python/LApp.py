@@ -454,6 +454,7 @@ class LWorkWindow(BoxLayout):
 			self.statusLine.height=hswh
 			self.statusLine.set_ori(0)
 
+		# diag = math.sqrt(self.size[0]*self.size[0] + self.size[1]*self.size[1])
 		LFont.set_screen_size(smin)
 		self.add_widget(self.headerLine)
 
