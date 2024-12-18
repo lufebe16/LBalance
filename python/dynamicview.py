@@ -322,8 +322,8 @@ class LAngleViewFull(LAngleView):
 		xh = radius * math.cos(alf+math.pi) + cx
 		yh = radius * math.sin(alf+math.pi) + cy
 
-		smf = LFont.small()*radius/300.0
-		anf = LFont.angle()*radius/300.0
+		smf = LFont.small(self.size[0])
+		anf = LFont.angle(1.3*radius)
 
 		lar = "<|"
 		rar = "|>"
@@ -436,12 +436,12 @@ class LAngleViewAV(LAngleView):
 
 		# Text ausgabe.
 		balance = value.balance()
-		anf = LFont.angle()*radius/300.0
-		lbx = self.pos[0]+self.size[0]/2.0
+		anf = LFont.angle(1.5*radius)
+		lbx = circle[0]
 		lby = self.pos[1]+(self.size[1]-self.size[0])/2.0
 		ngl = 0
 		if self.size[0] > self.size[1]:
-			lby = self.pos[1]+self.size[1]/2.0
+			lby = circle[1]
 			lbx = self.pos[0]+self.size[0]-(self.size[0]-self.size[1])/2.0
 			ngl = 90
 		rotated_text("{0: 5.2f}\u00b0".format(balance),
@@ -541,7 +541,7 @@ class LAngleViewBA(LAngleView):
 		cy = center[1]
 		phiR = math.radians(value.phi)
 
-		anf = LFont.small()*1.5*radius/900.0
+		anf = LFont.small(1.2*radius)
 
 		weiss = self.deckweiss
 		horizontcolor = self.horizontcolor
@@ -689,7 +689,7 @@ class LAngleViewMini(LAngleView):
 		tangle = (180.0+value.phi+90) % 360
 		self.anschrift.setup(text,
 			pos=(cx,cy),angle=tangle,anchor=(0,-1),font_size=anf,color=coltxt,
-			bcolor=[0.45,0.45,0.45,1])
+			bcolor=[0.45,0.45,0.45,1],bround=True)
 
 
 	def scene_update(self,cx,cy,text,value,anf,radius,wid):
@@ -718,7 +718,7 @@ class LAngleViewMini(LAngleView):
 		if radius <= 0.0: return
 
 		cx,cy = center
-		anf = LFont.angle()*radius/150.0
+		anf = LFont.angle(self.size[0])
 		wid = 11.0*radius/350.0/radius
 		bal = value.balance()
 		text = "{0: 4.1f}\u00b0".format(bal)
@@ -900,7 +900,7 @@ class LAngleViewBubble(LAngleView,FloatLayout):
 		grad = "\u00b0"
 		arrow = ["\u25b2","\u25b6","\u25bc","\u25c0"]
 		# Anm: DejaVuSans hat diese Zeichen, Roboto nicht.
-		fsiz = LFont.middle()*1.3*radius/300.0
+		fsiz = LFont.angle(radius)
 
 		rotated_text(
 			#"88.8"+grad+"8",
@@ -1141,7 +1141,7 @@ class LAngleViewKugel(LAngleView):
 
 
 	def anschrift_setup(self,canvas,value,cx,cy,radius):
-		anf = LFont.angle()*1.5*radius/300.0
+		anf = LFont.angle(1.5*radius)
 		coltxt = self.textcolor(value.balance())
 
 		if self.rottext is None:
@@ -1157,7 +1157,7 @@ class LAngleViewKugel(LAngleView):
 				#bcolor=[0.45,0.45,0.45,0.5])
 
 	def anschrift_update(self,value,cx,cy,radius):
-		anf = LFont.angle()*1.5*radius/300.0
+		anf = LFont.angle(1.5*radius)
 		coltxt = self.textcolor(value.balance())
 
 		if self.rottext is not None:
@@ -1249,7 +1249,6 @@ class LAngleViewKugelP(LAngleViewKugel):
 		super(LAngleViewKugelP, self).__init__(**kw)
 		self.rectangle = None
 		self.circleText = None
-		self.circleTrans = None
 		with self.canvas:
 			self.fbo = Fbo(with_depthbuffer=True)
 			self.fbo.shader.source = 'glsl/default.glsl'
@@ -1272,6 +1271,7 @@ class LAngleViewKugelP(LAngleViewKugel):
 		# Fbo ist unabh. von absoluten Grössen. Die Skalierung erfolgt bei
 		# der Platzierung der Textur, sodass die Kugel immer eine Kugel
 		# bleibt. Wir verwenden die default buffer grösse (1024x1024)
+		radius_orig = radius
 		zscale = 1.0
 		radius = 1.3
 		#matvc = Matrix().view_clip(-sx,sx,-sy,sy,2.9*zscale,5.1*zscale,1)
@@ -1288,18 +1288,11 @@ class LAngleViewKugelP(LAngleViewKugel):
 			Translate(0,0,-4*zscale)
 			Scale(x=radius*0.92,y=radius*0.92,z=zscale,origin=(0,0,0))
 
-			# Kreis als Text Hintergrund
+			# Text Anzeige in die Scene einpassen
 			posZ = self.textPosZ(value.balance())
 			PushMatrix()
-			rsiz = 0.7
-			self.circleTrans = Translate(0,0,posZ-0.01)
-			Color(0.45,0.45,0.45,1)
-			RoundedRectangle(pos=(-rsiz/2.0,-rsiz/2.0),size=(rsiz,rsiz))
-			PopMatrix()
-
-			# Text Anzeige in die Scene einpassen
-			PushMatrix()
-			scfac = 300.0
+			#scfac = 300.0
+			scfac = radius_orig
 			Scale(x=1.0/scfac,y=1.0/scfac,z=1.0,origin=(0,0,0))
 			if self.circleText is None:
 				self.circleText = RotatedText()
@@ -1308,9 +1301,12 @@ class LAngleViewKugelP(LAngleViewKugel):
 				pos=(0,0,posZ),
 				angle=value.phi-90.0,
 				anchor=(0,0),
-				font_size=LFont.angle(),
-				color=self.textcolor(value.balance()))
+				font_size=LFont.angle(1.5*radius_orig),
+				color=self.textcolor(value.balance()),
+				bcolor=[0.45,0.45,0.45,1],bround=True)
 			PopMatrix()
+
+			print("radii...",radius_orig,radius)
 
 			# die szene wir abhängig von der Lage gedreht.
 			theta = value.theta
@@ -1370,7 +1366,6 @@ class LAngleViewKugelP(LAngleViewKugel):
 					pos=(0,0,posZ),
 					angle=value.phi-90.0,
 					color=self.textcolor(value.balance()))
-			self.circleTrans.z = posZ-0.01
 
 		radius = self.bckgnd.get_tacho_radius()
 		if radius is None: return
@@ -1578,5 +1573,116 @@ class LAngleViewCube(LAngleView):
 			self.fboscale = Scale(x=sx,y=sy,z=zscale,origin=(cx,cy,0))
 			self.fborect = Rectangle(texture=self.fbo.texture,pos=self.pos,size=self.size)
 			PopMatrix()
+
+#=============================================================================
+
+from kivy.metrics import Metrics
+
+class LAngleViewText(LAngleView):
+
+	def __init__(self,**kw):
+		super(LAngleViewText, self).__init__(**kw)
+
+		self.text1 = None
+		self.text2 = None
+		self.text3 = None
+		self.text4 = None
+		self.text5 = None
+
+		with self.canvas:
+			set_color([1,1,1,1])
+			Rectangle(pos=(100,100),size=(100,100))
+			Rectangle(pos=self.pos,size=self.size)
+
+	def on_value(self,obj,value):
+
+		col=[0.1,0.1,0.1,1]
+		posy = 750
+
+		print("cm (pixels per cm):      ",Metrics.cm)
+		print("density:                 ",Metrics.density)
+		print("dp (d_pixels to pixels): ",Metrics.dp)
+		print("dpi (dots per inch)    : ",Metrics.dpi)
+		print("f_scale:                 ",Metrics.fontscale)
+
+		sctext = "cm (pixels per cm):      "+str(Metrics.cm)+ \
+		         "\ndensity:                 "+str(Metrics.density)+ \
+		         "\ndp (d_pixels to pixels): "+str(Metrics.dp)+ \
+		         "\ndpi (dots per inch)    : "+str(Metrics.dpi)+ \
+		         "\nf_scale:                 "+str(Metrics.fontscale)
+
+		print("small: ",LFont.small())
+		print("small: ",LFont.small())
+		print("small: ",LFont.small())
+
+		print("small: ",LFont.small())
+		print("middle: ",LFont.middle())
+		print("angle: ",LFont.angle())
+
+		print("50: ",LFont.norm(50))
+		print("20: ",LFont.norm(20))
+		print("10: ",LFont.norm(10))
+
+		if self.text1 is None:
+			self.text1 = RotatedText()
+			self.text1.setup(self.canvas,
+				text="Dies ist mein Testtext, 50sp",
+				pos=(20,posy),
+				anchor=(1,0),
+				font_size='50sp',
+				color=col)
+			posy -= 100.0
+			print("Text created")
+		else:
+			self.text1.update()
+
+		if self.text4 is None:
+			self.text4 = RotatedText()
+			self.text4.setup(self.canvas,
+				text="Dies ist mein Testtext, 40sp",
+				pos=(20,posy),
+				anchor=(1,0),
+				font_size='40sp',
+				color=col)
+			posy -= 100.0
+		else:
+			self.text4.update()
+
+		if self.text3 is None:
+			self.text3 = RotatedText()
+			self.text3.setup(self.canvas,
+				text="Dies ist mein Testtext, 40",
+				pos=(20,posy),
+				anchor=(1,0),
+				font_size=LFont.norm(40),
+				color=col)
+			posy -= 100.0
+		else:
+			self.text3.update(font_size=LFont.norm(40))
+
+		if self.text2 is None:
+			self.text2 = RotatedText()
+			self.text2.setup(self.canvas,
+				text="Testtext, 20sp, screen size: "+LFont.norm(720),
+				pos=(20,posy),
+				anchor=(1,0),
+				font_size='20sp',
+				color=col)
+			posy -= 100.0
+		else:
+			self.text2.update(text="Testtext, 20sp, screen size: "+LFont.norm(720))
+			print("Text updated")
+
+		if self.text5 is None:
+			self.text5 = RotatedText()
+			self.text5.setup(self.canvas,
+				text=sctext,
+				pos=(20,posy),
+				anchor=(1,0),
+				font_size='25sp',
+				color=col)
+			posy -= 100.0
+		else:
+			self.text5.update(text=sctext)
 
 #=============================================================================

@@ -35,6 +35,7 @@ class RotatedText(object):
 		self.textrect = None
 		self.bgndrect = None
 		self.bgndcolor = None
+		self.bround = False
 
 	def __eval(self,text=None,pos=None,angle=None,
 			font_size=None,font_name=None,anchor=None,color=None,
@@ -71,11 +72,12 @@ class RotatedText(object):
 
 	def setup(self,canvas,text=None,pos=None,angle=None,
 			font_size=None,font_name=None,anchor=None,color=None,
-			bcolor=None):
+			bcolor=None,bround=False):
 
 		t,x,y,z,xo,yo = self.__eval(text=text,pos=pos,angle=angle,
 			font_size=font_size,font_name=font_name,anchor=anchor,
 			color=color,bcolor=bcolor)
+		self.bround = bround
 
 		with canvas:
 			PushMatrix()
@@ -83,8 +85,14 @@ class RotatedText(object):
 			self.rotation = Rotate(angle=self.rt_angle,origin=(0,0))
 			Translate(0,0,-0.001)
 			self.bgndcolor = set_color(self.rt_bcolor)
-			#self.bgndrect = Rectangle(pos=(xo,yo),size=t.size)
-			self.bgndrect = RoundedRectangle(pos=(xo,yo),size=t.size,segments=20,radius=[t.size[1],])
+			if self.bround:
+				self.bgndrect = RoundedRectangle(
+					pos=(xo,yo),
+					size=t.size,
+					segments=20,
+					radius=[t.size[1],])
+			else:
+				self.bgndrect = Rectangle(pos=(xo,yo),size=t.size)
 			Translate(0,0,0.001)
 			set_color([1,1,1,1])
 			self.textrect = Rectangle(texture=t,pos=(xo,yo),size=t.size)
@@ -106,10 +114,11 @@ class RotatedText(object):
 		self.bgndcolor.rgba = self.rt_bcolor
 		self.bgndrect.pos = (xo,yo)
 		self.bgndrect.size = t.size
+		if self.bround:
+			self.bgndrect.radius = [t.size[1],]
 		self.textrect.texture = t
 		self.textrect.pos = (xo,yo)
 		self.textrect.size = t.size
-
 
 class RotatedTextWidget(Widget,RotatedText):
 	def __init__(self,**kwargs):
@@ -117,10 +126,10 @@ class RotatedTextWidget(Widget,RotatedText):
 
 	def setup(self,text=None,pos=None,angle=None,
 			font_size=None,font_name=None,anchor=None,color=None,
-			bcolor=None):
+			bcolor=None,bround=False):
 
 		super().setup(self.canvas,
-			text,pos,angle,font_size,font_name,anchor,color,bcolor)
+			text,pos,angle,font_size,font_name,anchor,color,bcolor,bround)
 
 
 def rotated_text(text="<empty>",pos=(0,0),angle=0,
@@ -271,6 +280,8 @@ def welle(lcolor=[1,1,1,0.1]):
 # =============================================================================
 # fonts.
 
+from kivy.metrics import Metrics
+
 class LFontSizer(EventDispatcher):
 	scdim = NumericProperty(480)
 
@@ -281,14 +292,25 @@ class LFontSizer(EventDispatcher):
 		print ('screen_size =',dim)
 		self.scdim = dim
 
-	def small(self):
-		return self.scdim // 25
+	def small(self,size=None):
+		return self.norm(12,size=size)
 
-	def middle(self):
-		return self.scdim // 15
+	def middle(self,size=None):
+		return self.norm(35,size=size)
 
-	def angle(self):
-		return self.scdim // 10
+	def angle(self,size=None):
+		return self.norm(70,size=size)
+
+	def norm(self,val,size=None):
+		if size is None:
+			n = val * self.scdim / 720.0
+		else:
+			n = val * size / 720.0
+		n = n * 2.0 / Metrics.dp
+		# 1.0: desktops default
+		# 2.0: android (phones,tablets) default
+		s = str(int(n))+'sp'
+		return s
 
 	def bind_widget(self,widget,func):
 		def fsb(widget,func):

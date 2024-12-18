@@ -188,12 +188,15 @@ class LStatusLine(BoxLayout,LBase):
 		self.yVal = LabelButton(text="yVal",halign="center")
 		self.zVal = LabelButton(text="zVal",halign="center")
 
-		LFont.bind_widget(self.g, LFont.small)
-		LFont.bind_widget(self.phi, LFont.small)
-		LFont.bind_widget(self.theta, LFont.small)
-		LFont.bind_widget(self.xVal, LFont.small)
-		LFont.bind_widget(self.yVal, LFont.small)
-		LFont.bind_widget(self.zVal, LFont.small)
+		def fnorm():
+			return LFont.norm(12)
+
+		LFont.bind_widget(self.g, fnorm)
+		LFont.bind_widget(self.phi, fnorm)
+		LFont.bind_widget(self.theta, fnorm)
+		LFont.bind_widget(self.xVal, fnorm)
+		LFont.bind_widget(self.yVal, fnorm)
+		LFont.bind_widget(self.zVal, fnorm)
 
 		self.add_widget(self.g)
 		self.add_widget(self.phi)
@@ -245,9 +248,12 @@ class LHeaderLine(BoxLayout,LBase):
 		self.cala = CalaButton(text=_("Calibrate"),halign="center")
 		self.layout = LayoutButton(text=_("Layout"))
 
-		LFont.bind_widget(self.title, LFont.small)
-		LFont.bind_widget(self.cala, LFont.small)
-		LFont.bind_widget(self.layout, LFont.small)
+		def fnorm():
+			return LFont.norm(12)
+
+		LFont.bind_widget(self.title, fnorm)
+		LFont.bind_widget(self.cala, fnorm)
+		LFont.bind_widget(self.layout, fnorm)
 
 		self.add_widget(self.title)
 		self.add_widget(self.cala)
