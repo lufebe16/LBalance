@@ -45,6 +45,7 @@ class RotatedText(object):
 		if pos is not None: self.rt_pos = pos
 		if text is not None: self.rt_text = text
 		if font_size is not None: self.rt_font_size = font_size
+		if font_name is not None: self.rt_font_name = font_name
 		if anchor is not None: self.rt_anchor = anchor
 		if color is not None: self.rt_color = color
 		if bcolor is not None: self.rt_bcolor = bcolor
@@ -68,7 +69,6 @@ class RotatedText(object):
 
 		#print(t,x,y,z,xo,yo)
 		return (t,x,y,z,xo,yo)
-
 
 	def setup(self,canvas,text=None,pos=None,angle=None,
 			font_size=None,font_name=None,anchor=None,color=None,
@@ -250,10 +250,17 @@ def raute(lcolor=[1,1,1,0.1]):
 	indices = [0,1,2,4,5,6]
 	Mesh(vertices=vertices, indices=indices).mode = 'triangle_fan'
 
-__welle = None
+	# Anmerkung zu Mesh:
+	# Mesh nimmt noch einen dritten parameter: fmt. Damit werden
+	# die Zuordungen der Arraywerte (pro gruppe) zu opengl-shader variablen
+	# beschrieben. Die Voreinstellung in kivy ist:
+	#   fmt = [(b'vPosition', 2, 'float'), (b'vTexCoords0', 2, 'float'),]
+	# und passt damit auf den standard shader.
+	# (Wer sich nicht scheut eine eigenen shader zu adaptieren, kann hier
+	# z.B. 3d koordinaten einführen.)
+
 def welle(lcolor=[1,1,1,0.1]):
-	global __welle
-	if __welle is None:
+	if True:
 		__welle = InstructionGroup()
 		__welle.add(Color(lcolor[0],lcolor[1],lcolor[2],lcolor[3]))
 

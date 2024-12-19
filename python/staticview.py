@@ -164,7 +164,7 @@ class LCircleViewFineWithScale(LCircleView):
 
 		angle = None
 		self.radius = 0.9*self.msiz/2
-		fs = LFont.small(self.size[0])
+		fs = LFont.small(1.5*self.radius)
 		step = self.radius / 45
 		c = self.center
 		r = self.radius

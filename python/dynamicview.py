@@ -403,40 +403,94 @@ class LAngleViewFull2(LAngleViewFull):
 #=============================================================================
 
 class LAngleViewAV(LAngleView):
+	class Circle(Widget):
+		def __init__(self,*kw):
+			super(LAngleViewAV.Circle,self).__init__(*kw)
+			self.pcol = None
+			self.plin = None
+			self.trans = None
+			self.scale = None
+			self.rot = None
+
+		def setup(self,pcol=[1,1,1,1]):
+			if self.trans is None:
+				with self.canvas:
+					self.pcol = set_color(pcol)
+					self.plin = Line(points=[0,0,0,0],width=2.2)
+					PushMatrix()
+					self.trans = Translate(0,0)
+					self.scale = Scale(x=1,y=1,origin=(0,0))
+					self.rot = Rotate(angle=0.0,origin=(0,0))
+					baloon(triangle=False)
+					PopMatrix()
+
+		def update(self,
+			pos=(0,0),pnts=[0,0,0,0],radius=100,angle=0.0):
+			self.plin.points = pnts
+			self.trans.xy = pos
+			self.scale.x = radius
+			self.scale.y = radius
+			self.rot = angle
+
+	class Meter(Widget):
+		def __init__(self,*kw):
+			super(LAngleViewAV.Meter,self).__init__(*kw)
+			self.trans = None
+			self.scale = None
+			self.rot = None
+
+		def setup(self,lcolor=[1,1,1,1]):
+			if self.trans is None:
+				with self.canvas:
+					PushMatrix()
+					self.trans = Translate(0,0)
+					length = 100
+					self.scale = Scale(x=length/8.4,y=length/17,z=1,origin=(0,0))
+					self.rot = Rotate(angle=90,origin=(0,0))
+					self.canvas.add(welle(lcolor=lcolor))
+					PopMatrix()
+
+		def update(self,pos=(0,0),leftright=True,length=100):
+			self.trans.xy = pos
+			angle = 90.0
+			xs = length/8.4
+			ys = length/17
+			if not leftright:
+				angle = 0.0
+				ys = length/8.4
+				xs = length/17
+			self.scale.x = xs
+			self.scale.y = ys
+			self.rot.angle = angle
+
 	def __init__(self,**kw):
 		super(LAngleViewAV, self).__init__(**kw)
 		self.pointer_color = [0.8,0.0,0.0,1.0]
 		self.text_color = [0.95,0.95,0.95,1]
 
-	def pointer(self,line=False):
-		original = self.val_ori not in ['LANDING','FLYING']
-		if original:
-			#raute(lcolor=self.pointer_color)
-			self.canvas.after.add(welle(lcolor=self.pointer_color))
-		else:
-			set_color(self.pointer_color)
-			baloon(triangle=False,line=line)
+		self.cpointer = self.Circle()
+		self.mpointer = self.Meter()
+		self.rtext = None
 
-	def dirline(self,balance,xv,yv,cx,cy):
-		set_color(self.pointer_color)
-		if balance>0.1 or balance<-0.1:
-			Line(points=[xv,yv,cx,cy],width=2.2)
+		self.add_widget(self.cpointer)
+		self.add_widget(self.mpointer)
 
 	def on_value(self, inst, value):
 		if value is None: return
 
-		self.canvas.after.clear()
-		with self.canvas.after:
-			self.drawit(value)
-
-	def drawit(self,value):
 		radius = self.bckgnd.get_tacho_radius()
 		circle = self.bckgnd.get_tacho_center()
 		if radius <= 0.0: return
 
+		# Text initialisierung.
+		anf = LFont.angle(1.5*radius)
+		if self.rtext is None:
+			self.rtext = RotatedTextWidget()
+			self.add_widget(self.rtext)
+			self.rtext.setup(font_size=anf,color=self.text_color,anchor=(0,-1.2))
+
 		# Text ausgabe.
 		balance = value.balance()
-		anf = LFont.angle(1.5*radius)
 		lbx = circle[0]
 		lby = self.pos[1]+(self.size[1]-self.size[0])/2.0
 		ngl = 0
@@ -444,12 +498,17 @@ class LAngleViewAV(LAngleView):
 			lby = circle[1]
 			lbx = self.pos[0]+self.size[0]-(self.size[0]-self.size[1])/2.0
 			ngl = 90
-		rotated_text("{0: 5.2f}\u00b0".format(balance),
-				pos=(lbx,lby),angle=ngl,font_size=anf,color=self.text_color,anchor=(0,-1.2))
+
+		self.rtext.update("{0: 5.2f}\u00b0".format(balance),pos=(lbx,lby),angle=ngl)
+
+		# Zeiger initialisierung
+		self.cpointer.setup(pcol=self.pointer_color)
+		self.mpointer.setup(lcolor=self.pointer_color)
 
 		# Zeiger Darstellungen.
 		if value.orientation() in ["LANDING","FLYING"]:
-
+			self.cpointer.opacity = 1.0
+			self.mpointer.opacity = 0.0
 			x,y = value.xy()
 			x = x*radius/45.0 + circle[0]
 			y = y*radius/45.0 + circle[1]
@@ -460,17 +519,11 @@ class LAngleViewAV(LAngleView):
 			xv = radius * math.cos(alf) + cx
 			yv = radius * math.sin(alf) + cy
 
-			self.dirline(balance,xv,yv,cx,cy)
-
-			PushMatrix()
-			Translate(x,y)
-			Rotate(angle=value.phi,origin=(0,0))
-			r = radius/13.0
-			Scale(x=r,y=r,origin=(0,0))
-			self.pointer()
-			PopMatrix()
-
+			self.cpointer.update(
+				pos=(x,y),pnts=[xv,yv,cx,cy],radius=radius/13.0,angle=value.phi)
 		else:
+			self.cpointer.opacity = 0.0
+			self.mpointer.opacity = 1.0
 			length = self.bckgnd.get_meter_length()
 			center = self.bckgnd.get_meter_center()
 
@@ -478,15 +531,8 @@ class LAngleViewAV(LAngleView):
 			x = x*length/45.0 + center[0]
 			y = y*length/45.0 + center[1]
 
-			PushMatrix()
-			Translate(x,y)
-			if value.orientation() in ["LEFT","RIGHT"]:
-				Scale(x=length/8.4,y=length/17,z=1,origin=(0,0))
-				Rotate(angle=90,origin=(0,0))
-			else:
-				Scale(x=length/17,y=length/8.4,z=1,origin=(0,0))
-			self.pointer(line=True)
-			PopMatrix()
+			self.mpointer.update(pos=(x,y),
+				leftright=value.orientation() in ["LEFT","RIGHT"],length=length)
 
 #=============================================================================
 
@@ -757,8 +803,8 @@ class Bubble(Widget):
 				angle_start=start,angle_end=end)
 			PopMatrix()
 
-			self.bind(pos=self._updatePos)
-			self.bind(size=self._updateSize)
+		self.bind(pos=self._updatePos)
+		self.bind(size=self._updateSize)
 
 	def _updatePos(self,obj,pos):
 		self.pos = pos
@@ -796,8 +842,9 @@ class GridCircle(Widget):
 			self.line3 = Line(points=points3,width=0.3)
 			self.line4 = Line(points=points4,width=0.3)
 			PopMatrix()
-			self.bind(pos=self._updatePos)
-			self.bind(size=self._updateSize)
+
+		self.bind(pos=self._updatePos)
+		self.bind(size=self._updateSize)
 
 	def _updatePos(self,obj,pos):
 		self.pos = pos
@@ -843,8 +890,9 @@ class GridBar(Widget):
 			self.line1 = Line(points=(1.0,1.0,1.0,-1.0),width=100)
 			self.line2 = Line(points=(-1.0,1.0,-1.0,-1.0),width=100)
 			PopMatrix()
-			self.bind(pos=self._updatePos)
-			self.bind(size=self._updateSize)
+
+		self.bind(pos=self._updatePos)
+		self.bind(size=self._updateSize)
 
 	def _updatePos(self,obj,pos):
 		self.pos = pos
@@ -869,6 +917,69 @@ class GridBar(Widget):
 		self.color.a = opaque
 
 
+class TextBox(Widget):
+	# Text Darstellung.
+	def __init__(self,**kw):
+		super(TextBox,self).__init__(**kw)
+
+		self.bbox = RotatedText()
+		self.btxt = RotatedText()
+
+		self.bbox.setup(self.canvas,
+			text="888888",
+			pos=(0,0),
+			angle=0,
+			font_name="DejaVuSans.ttf",
+		  font_size=20,
+		  anchor=(0,0),
+		  color=[0.15,0.15,0.15,1],
+		  bcolor=[0,0,0,1])
+
+		self.btxt.setup(self.canvas,
+			text="<empty>",
+			pos=(0,0),
+			angle=0,
+			font_name = "DejaVuSans.ttf",
+			font_size=20,
+			anchor=(0,0),
+			color=[0.0,1.0,0.05,1])
+
+		self.bind(pos=self._updatePos)
+		self.bind(size=self._updateSize)
+
+	def _updatePos(self,obj,pos):
+		self.pos = pos
+	def _updateSize(self,obj,size):
+		self.size = size
+
+	def ftext(self,value,asel,apos):
+		grad = "\u00b0"
+		arrow = ["\u25b2","\u25b6","\u25bc","\u25c0"]
+		# Anm: DejaVuSans hat diese Zeichen, Roboto nicht.
+
+		svalue = "{0:04.1f}".format(math.fabs(value))
+		if value < 0: asel += 2
+		if apos == 0:
+			text = arrow[asel]+svalue+"\u00b0"
+		else:
+			text = svalue+"\u00b0"+arrow[asel]
+		return text
+
+	def update(self,value,x,y,angle=0,anchor=(0,0),apos=0,asel=0,radius=300.0):
+		fsiz = LFont.angle(radius)
+		self.bbox.update(
+			pos=(x,y),
+			angle=angle,
+			font_size=fsiz,
+			anchor=anchor)
+		self.btxt.update(
+			text=self.ftext(value,asel,apos),
+			pos=(x,y),
+			angle=angle,
+			font_size=fsiz,
+			anchor=anchor)
+
+
 class LAngleViewBubble(LAngleView,FloatLayout):
 	def __init__(self,**kw):
 		super(LAngleViewBubble, self).__init__(**kw)
@@ -878,6 +989,12 @@ class LAngleViewBubble(LAngleView,FloatLayout):
 		self.add_widget(self.gridCircleObj)
 		self.gridBarObj = GridBar()
 		self.add_widget(self.gridBarObj)
+		self.textBoxObjL = TextBox()
+		self.add_widget(self.textBoxObjL)
+		self.textBoxObjR = TextBox()
+		self.add_widget(self.textBoxObjR)
+		self.textBoxObjS = TextBox()
+		self.add_widget(self.textBoxObjS)
 		self.value = None
 
 	# die Luftblase
@@ -896,41 +1013,6 @@ class LAngleViewBubble(LAngleView,FloatLayout):
 		self.gridBarObj.enable(1.0)
 		self.gridBarObj.update(x,y,radius,scale,lwidth=lwidth,turn=turn)
 
-	def textbox(self,value,x,y,angle=0,anchor=(0,0),apos=0,asel=0,radius=300.0):
-		grad = "\u00b0"
-		arrow = ["\u25b2","\u25b6","\u25bc","\u25c0"]
-		# Anm: DejaVuSans hat diese Zeichen, Roboto nicht.
-		fsiz = LFont.angle(radius)
-
-		rotated_text(
-			#"88.8"+grad+"8",
-			"888888",
-			pos=(x,y),
-			angle=angle,
-			#font_name = "RobotoMono-Regular.ttf",
-			font_name = "DejaVuSans.ttf",
-			font_size=fsiz,
-			anchor=anchor,
-			color=[0.15,0.15,0.15,1],
-			bgnd=True,
-			bcolor=[0,0,0,1])
-
-		svalue = "{0:04.1f}".format(math.fabs(value))
-		if value < 0: asel += 2
-		if apos == 0:
-			text = arrow[asel]+svalue+"\u00b0"
-		else:
-			text = svalue+"\u00b0"+arrow[asel]
-		rotated_text(
-			text=text,
-			pos=(x,y),
-			angle=angle,
-			#font_name = "RobotoMono-Regular.ttf",
-			font_name = "DejaVuSans.ttf",
-			font_size=fsiz,
-			anchor=anchor,
-			color=[0.0,1.0,0.05,1])
-
 	def scene_flat(self,value,x,y,cx,cy,radius,scale):
 		wid = 3.0/300.0
 		bx = cx + (x-cx)*(1.0-scale)
@@ -941,13 +1023,17 @@ class LAngleViewBubble(LAngleView,FloatLayout):
 		if self.size[1] > self.size[0]:
 			bx = self.pos[0] + self.size[0]*.5
 			by = (self.pos[1] + (cy-radius))/2
-			self.textbox(value.roll(), bx,by,anchor=(-1.2,0),asel=1,apos=0,radius=radius)
-			self.textbox(value.pitch(), bx,by,anchor=(1.2,0),asel=0,apos=1,radius=radius)
+			self.textBoxObjL.update(
+				value.roll(),bx,by,anchor=(-1.2,0),asel=1,apos=0,radius=radius)
+			self.textBoxObjR.update(
+				value.pitch(),bx,by,anchor=(1.2,0),asel=0,apos=1,radius=radius)
 		else:
 			by = self.pos[1] + self.size[1]*.5
 			bx = (self.pos[0] + self.size[0] + (cx+radius))/2
-			self.textbox(-value.roll(), bx,by,anchor=(1.2,0),asel=0,apos=1,angle=90,radius=radius)
-			self.textbox(value.pitch(), bx,by,anchor=(-1.2,0),asel=1,apos=0,angle=90,radius=radius)
+			self.textBoxObjL.update(
+				-value.roll(),bx,by,anchor=(1.2,0),asel=0,apos=1,angle=90,radius=radius)
+			self.textBoxObjR.update(
+				value.pitch(),bx,by,anchor=(-1.2,0),asel=1,apos=0,angle=90,radius=radius)
 
 	def scene_up(self,value,x,y,cx,cy,radius,scale):
 		#wid = 3.0/max(radius,0.01)
@@ -976,19 +1062,23 @@ class LAngleViewBubble(LAngleView,FloatLayout):
 		if self.val_ori in ['BOTTOM']:
 			bx = self.pos[0] + self.size[0]*.5
 			by = (self.pos[1] + (cy-radius*scale))/2
-			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,radius=radius)
+			self.textBoxObjS.update(
+				value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,radius=radius)
 		elif self.val_ori in ['TOP']:
 			bx = self.pos[0] + self.size[0]*.5
 			by = (self.pos[1] + self.size[1] + (cy+radius*scale))/2
-			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=180,radius=radius)
+			self.textBoxObjS.update(
+				value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=180,radius=radius)
 		elif self.val_ori in ['LEFT']:
 			by = self.pos[1] + self.size[1]*.5
 			bx = (self.pos[0] + (cx-radius*scale))/2
-			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=-90,radius=radius)
+			self.textBoxObjS.update(
+				value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=-90,radius=radius)
 		elif self.val_ori in ['RIGHT']:
 			by = self.pos[1] + self.size[1]*.5
 			bx = (self.pos[0] + self.size[0] + (cx+radius*scale))/2
-			self.textbox(value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=90,radius=radius)
+			self.textBoxObjS.update(
+				value.balance(), bx,by,anchor=(0,0),asel=0,apos=1,angle=90,radius=radius)
 
 	def on_value(self, inst, value):
 		if value is None: return
@@ -1005,14 +1095,19 @@ class LAngleViewBubble(LAngleView,FloatLayout):
 		x = x*radius/45.0 + cx
 		y = y*radius/45.0 + cy
 
-		# Graphik (löschen und) neu aufbauen:
+		if self.val_ori in ['LANDING','FLYING']:
+			self.scene_flat(value,x,y,cx,cy,radius,scale)
+		else:
+			self.scene_up(value,x,y,cx,cy,radius,scale)
 
-		self.canvas.after.clear()			# brauchts noch wegen text.  !!!!
-		with self.canvas.after:
-			if self.val_ori in ['LANDING','FLYING']:
-				self.scene_flat(value,x,y,cx,cy,radius,scale)
-			else:
-				self.scene_up(value,x,y,cx,cy,radius,scale)
+		# manage text visibility.
+		t = value.theta
+		if t>90.0: t = 180.0-t
+		if t<45.0: o = 0.0
+		if t>=45.0: o = 1.0
+		self.textBoxObjL.opacity = 1.0-o
+		self.textBoxObjR.opacity = 1.0-o
+		self.textBoxObjS.opacity = o
 
 #=============================================================================
 # Kugel Drahtmodel.
@@ -1271,9 +1366,8 @@ class LAngleViewKugelP(LAngleViewKugel):
 		# Fbo ist unabh. von absoluten Grössen. Die Skalierung erfolgt bei
 		# der Platzierung der Textur, sodass die Kugel immer eine Kugel
 		# bleibt. Wir verwenden die default buffer grösse (1024x1024)
-		radius_orig = radius
 		zscale = 1.0
-		radius = 1.3
+		xycorr = 1.2
 		#matvc = Matrix().view_clip(-sx,sx,-sy,sy,2.9*zscale,5.1*zscale,1)
 		matvc = Matrix().view_clip(-1.0,1.0,-1.0,1.0,2.9*zscale,5.1*zscale,1)
 		self.fbo['projection_mat'] = matvc
@@ -1286,14 +1380,12 @@ class LAngleViewKugelP(LAngleViewKugel):
 
 			PushMatrix()
 			Translate(0,0,-4*zscale)
-			Scale(x=radius*0.92,y=radius*0.92,z=zscale,origin=(0,0,0))
+			Scale(x=xycorr,y=xycorr,z=zscale,origin=(0,0,0))
 
 			# Text Anzeige in die Scene einpassen
 			posZ = self.textPosZ(value.balance())
 			PushMatrix()
-			#scfac = 300.0
-			scfac = radius_orig
-			Scale(x=1.0/scfac,y=1.0/scfac,z=1.0,origin=(0,0,0))
+			Scale(x=1.0/radius,y=1.0/radius,z=1.0,origin=(0,0,0))
 			if self.circleText is None:
 				self.circleText = RotatedText()
 			self.circleText.setup(self.fbo,
@@ -1301,12 +1393,10 @@ class LAngleViewKugelP(LAngleViewKugel):
 				pos=(0,0,posZ),
 				angle=value.phi-90.0,
 				anchor=(0,0),
-				font_size=LFont.angle(1.5*radius_orig),
+				font_size=LFont.angle(1.5*radius),
 				color=self.textcolor(value.balance()),
 				bcolor=[0.45,0.45,0.45,1],bround=True)
 			PopMatrix()
-
-			print("radii...",radius_orig,radius)
 
 			# die szene wir abhängig von der Lage gedreht.
 			theta = value.theta
@@ -1464,7 +1554,16 @@ class LAngleViewCube(LAngleView):
 			set_color(color)
 			Rectangle(pos=(-0.5,-0.5),size=(1.0,1.0))
 		if tex is not None:
+			# text aussen.
 			Translate(0,0,0.01,origin=(0,0,0))
+			set_color([1,1,1,1])
+			rect = Rectangle(texture=tex,pos=(-0.5,-0.3),size=(1.0,0.6))
+			if tex is self.textex:
+				self.rectstex.append(rect)
+			if tex is self.texbal:
+				self.rectsbal.append(rect)
+			# text innen
+			Translate(0,0,-0.02,origin=(0,0,0))
 			set_color([1,1,1,1])
 			rect = Rectangle(texture=tex,pos=(-0.5,-0.3),size=(1.0,0.6))
 			if tex is self.textex:
@@ -1565,8 +1664,6 @@ class LAngleViewCube(LAngleView):
 
 		print(self.fbo.texture)
 
-		#self.canvas.after.clear()
-		#with self.canvas.after:
 		with self.canvas:
 			PushMatrix()
 			self.fbocolor = Color(1,1,1,1)
@@ -1577,8 +1674,34 @@ class LAngleViewCube(LAngleView):
 #=============================================================================
 
 from kivy.metrics import Metrics
+from objrenderer import ObjRenderer
+from kivy.core.window import Window
 
 class LAngleViewText(LAngleView):
+
+	class MyWelle(Widget):
+		def __init__(self,**kw):
+			super(LAngleViewText.MyWelle,self).__init__(*kw)
+			print("__init__")
+
+			with self.canvas:
+				self.colr = Color(0.5,0.0,0.5,1.0)
+				PushMatrix()
+				self.trans = Translate(x=100,y=100)
+				self.scale = Scale(x=100,y=100)
+				self.rotw = Rotate(angle=90)
+				self.canvas.add(welle(lcolor=[0.6,0.0,0.2,0.5]))
+				PopMatrix()
+
+		def update(self,center=(300,300),angle=0.0,size=(100,100)):
+			print("update")
+			cx,cy = center
+			self.colr.rgba = [0.2,0.0,0.6,1]
+			self.trans.xy = center
+			self.rotw.angle = angle
+			sx,sy = size
+			self.scale.x = sx
+			self.scale.y = sy
 
 	def __init__(self,**kw):
 		super(LAngleViewText, self).__init__(**kw)
@@ -1589,12 +1712,24 @@ class LAngleViewText(LAngleView):
 		self.text4 = None
 		self.text5 = None
 
-		with self.canvas:
-			set_color([1,1,1,1])
-			Rectangle(pos=(100,100),size=(100,100))
-			Rectangle(pos=self.pos,size=self.size)
+		self.welle = self.MyWelle()
+		self.add_widget(self.welle)
+
+		self.renderer = ObjRenderer(objfile="data/feder1.obj")
+		self.add_widget(self.renderer)
+		self.renderer.opacity = 0.9
 
 	def on_value(self,obj,value):
+
+		cx,cy = self.center
+		print("center",self.center,cx,cy)
+
+		sx,sy = self.size
+		s = min(sx,sy)/2.2
+
+		self.welle.update(center=self.center,angle=value.phi-90,size=(s,s))
+		
+		#self.renderer.setScale(xy=(1.1,1.1))
 
 		col=[0.1,0.1,0.1,1]
 		posy = 750
@@ -1611,78 +1746,30 @@ class LAngleViewText(LAngleView):
 		         "\ndpi (dots per inch)    : "+str(Metrics.dpi)+ \
 		         "\nf_scale:                 "+str(Metrics.fontscale)
 
-		print("small: ",LFont.small())
-		print("small: ",LFont.small())
-		print("small: ",LFont.small())
-
-		print("small: ",LFont.small())
-		print("middle: ",LFont.middle())
-		print("angle: ",LFont.angle())
-
-		print("50: ",LFont.norm(50))
-		print("20: ",LFont.norm(20))
-		print("10: ",LFont.norm(10))
-
+		'''
 		if self.text1 is None:
 			self.text1 = RotatedText()
 			self.text1.setup(self.canvas,
 				text="Dies ist mein Testtext, 50sp",
-				pos=(20,posy),
-				anchor=(1,0),
+				pos=(cx,cy-250),
+				anchor=(0,0),
 				font_size='50sp',
 				color=col)
-			posy -= 100.0
 			print("Text created")
 		else:
-			self.text1.update()
-
-		if self.text4 is None:
-			self.text4 = RotatedText()
-			self.text4.setup(self.canvas,
-				text="Dies ist mein Testtext, 40sp",
-				pos=(20,posy),
-				anchor=(1,0),
-				font_size='40sp',
-				color=col)
-			posy -= 100.0
-		else:
-			self.text4.update()
-
-		if self.text3 is None:
-			self.text3 = RotatedText()
-			self.text3.setup(self.canvas,
-				text="Dies ist mein Testtext, 40",
-				pos=(20,posy),
-				anchor=(1,0),
-				font_size=LFont.norm(40),
-				color=col)
-			posy -= 100.0
-		else:
-			self.text3.update(font_size=LFont.norm(40))
+			self.text1.update(pos=(cx,cy-250))
 
 		if self.text2 is None:
 			self.text2 = RotatedText()
 			self.text2.setup(self.canvas,
-				text="Testtext, 20sp, screen size: "+LFont.norm(720),
-				pos=(20,posy),
-				anchor=(1,0),
-				font_size='20sp',
+				text="Dies ist mein Testtext, 50dp",
+				pos=(cx,cy+250),
+				anchor=(0,0),
+				font_size='50dp',
 				color=col)
-			posy -= 100.0
+			print("Text created")
 		else:
-			self.text2.update(text="Testtext, 20sp, screen size: "+LFont.norm(720))
-			print("Text updated")
-
-		if self.text5 is None:
-			self.text5 = RotatedText()
-			self.text5.setup(self.canvas,
-				text=sctext,
-				pos=(20,posy),
-				anchor=(1,0),
-				font_size='25sp',
-				color=col)
-			posy -= 100.0
-		else:
-			self.text5.update(text=sctext)
+			self.text2.update(pos=(cx,cy+250))
+		'''
 
 #=============================================================================
